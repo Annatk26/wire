@@ -4,6 +4,8 @@
     into other modules.
 '''
 
+from datetime import datetime
+
 # Plotting
 import cv2
 import matplotlib.pyplot as plt
@@ -16,6 +18,8 @@ import torch
 from matplotlib.lines import Line2D
 from scipy import io, signal
 from scipy.sparse.linalg import svds
+import pandas as pd
+import scipy.io
 
 
 def normalize(x, fullnormalize=False):
@@ -270,3 +274,39 @@ def get_layer_outputs(model, coords, imsize, nfilters_vis=16, get_imag=False):
         coords = layer_output
 
     return atom_montages
+
+
+def log(message):
+    print(f"{datetime.now()} - {message}")
+
+
+def tabulate_results(mat_file):
+    # Load the .mat file
+    mat = scipy.io.loadmat(mat_file)
+
+    # Create a dictionary of the variables in the .mat file
+    variables = {}
+    for key in mat.keys():
+        if not key.startswith('__'):
+            variables[key] = mat[key]
+    nonlin_all = ['wire', 'gauss', 'siren', 'relu', 'posenc', 'mfn', 'wire2d']
+    data = {}
+
+    first_nonlin = nonlin_all[0]
+    for key in mat[first_nonlin][0, 0].dtype.names:
+        data[key] = []
+    
+    nonlin = []
+    for types in nonlin_all:
+        if types in variables.keys():
+            nonlin.append(types)        
+            values = mat[types][0, 0]
+            for key in values.dtype.names:
+                data[key].append(values[key][0, 0])
+
+    # Create a DataFrame from the dictionary where the keys are the columns and the first two values are the rows
+    df = pd.DataFrame(data, index=nonlin)
+
+    # Create a table of the variables and their values 
+    print(df)
+

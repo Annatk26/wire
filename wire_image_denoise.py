@@ -1,8 +1,7 @@
 from modules import setup
 
-setup.setup()
+setup.seed_everything()
 
-import logging
 import os
 import time
 
@@ -17,11 +16,11 @@ from torch.optim.lr_scheduler import LambdaLR
 
 if __name__ == "__main__":
     plt.gray()
-    # nonlin = 'mfn'            # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     nonlin_types = ["wire", "siren", "mfn", "relu", "posenc", "gauss"]
-    mdict = {}  # Dictionary to store results of each non-linearity
+    mdict = {}  # Dictionary to store info of each non-linearity
+    metrics = {}  # Dictionary to store metrics of each non-linearity
     niters = 2000  # Number of SGD iterations (2000)
-    # learning_rate = 5e-3        # Learning rate.
+    expected = [30.2, 29.7, 26.6, 0, 29.2, 28.1] # Expected PSNR values
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
@@ -31,8 +30,8 @@ if __name__ == "__main__":
 
     # Gabor filter constants.
     # We suggest omega0 = 4 and sigma0 = 4 for denoising, and omega0=20, sigma0=30 for image representation
-    omega0 = 4.0  # Frequency of sinusoid
-    sigma0 = 4.0  # Sigma of Gaussian
+    omega0 = 7.0  # Frequency of sinusoid
+    sigma0 = 9.0  # Sigma of Gaussian (8.0)
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
@@ -60,8 +59,9 @@ if __name__ == "__main__":
     gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
     gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 
-    for nonlin in nonlin_types:
-        logging.info(f"Running model with nonlinearity: {nonlin}")
+    for i, nonlin in enumerate(nonlin_types):
+        utils.log(f"Running model with nonlinearity: {nonlin}")
+
         # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
         # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
         # Set learning rate based on nonlinearity
@@ -98,8 +98,8 @@ if __name__ == "__main__":
         )
 
         model.cuda()
-        logging.info(f"Number of parameters: {utils.count_parameters(model)}")
-        logging.info(f"Input PSNR: {utils.psnr(im, im_noisy)} dB")
+        utils.log(f"Number of parameters: {utils.count_parameters(model)}")
+        utils.log(f"Input PSNR: {utils.psnr(im, im_noisy)} dB")
 
         # Create an optimizer
         optim = torch.optim.Adam(lr=learning_rate *
@@ -162,6 +162,7 @@ if __name__ == "__main__":
         if posencode:
             nonlin = "posenc"
 
+        utils.log(f"Best PSNR: {utils.psnr(im, best_img)} dB")
         mdict[nonlin] = {
             "rec": best_img,
             "gt": im,
@@ -170,12 +171,17 @@ if __name__ == "__main__":
             "mse_array": mse_array.detach().cpu().numpy(),
             "time_array": time_array.detach().cpu().numpy(),
         }
-
-        logging.info(f"Best PSNR: {utils.psnr(im, best_img)} dB")
+        metrics[nonlin] = {
+            "Number of parameters": utils.count_parameters(model),
+            "Best PSNR": utils.psnr(im, best_img),
+            "Expected PSNR": expected[i],
+            "PSNR Difference": abs(utils.psnr(im, best_img) - expected[i])
+        }
 
     os.makedirs("/rds/general/user/atk23/home/wire/results/denoising",
                 exist_ok=True)
-    for nonlin, results in mdict.items():
-        io.savemat(
-            f"/rds/general/user/atk23/home/wire/results/denoising/{nonlin}.mat",
-            results)
+    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/info.mat",
+               mdict)
+    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/metrics.mat", metrics)
+
+    utils.tabulate_results("/rds/general/user/atk23/home/wire/results/denoising/metrics.mat")
