@@ -16,13 +16,13 @@ from torch.optim.lr_scheduler import LambdaLR
 
 if __name__ == "__main__":
     utils.log("Starting image denoising experiment")
+    utils.log("Analysis of different c")
     plt.gray()
-    nonlin_types = ["wire", "siren", "mfn", "relu", "posenc", "gauss"]
-    
+    #nonlin_types = ["bspline_sig"]
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
     niters = 2000  # Number of SGD iterations (2000)
-    expected = [30.2, 26.6, 28.1, 0, 29.2, 29.7] # Expected PSNR values
+    learning_rate = 1e-3  # Learning rate
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
@@ -32,8 +32,9 @@ if __name__ == "__main__":
 
     # Gabor filter constants.
     # We suggest omega0 = 4 and sigma0 = 4 for denoising, and omega0=20, sigma0=30 for image representation
-    omega0 = 7.0  # Frequency of sinusoid
-    sigma0 = 4.0  # Sigma of Gaussian (8.0)
+    #omega0 = 5.0  # Frequency of sinusoid
+    omega0 = 5.0
+    sigma0 = [12.0, 14.0, 15.0, 19.0]  # Sigma of Gaussian (8.0)
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
@@ -61,23 +62,13 @@ if __name__ == "__main__":
     gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
     gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 
-    for i, nonlin in enumerate(nonlin_types):
+    for sigma in sigma0:
         # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
         # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
         # Set learning rate based on nonlinearity
-        learning_rate = {
-            "wire": 5e-3,
-            "siren": 2e-3,
-            "mfn": 5e-2,
-            "relu": 1e-3,
-            "posenc": 2e-3,
-            "gauss": 3e-3,
-        }[nonlin]
-        utils.log(f"{nonlin} learning rate: {learning_rate}")
-        if nonlin == "wire":
-            sigma0 = 8.0
-        utils.log(f"Omega0: {omega0}, Sigma0: {sigma0}")
-
+        utils.log(f"Omega0: {omega0}, Sigma0: {sigma}")
+        utils.log(f"BSpline learning rate: {learning_rate}")
+        nonlin = "bspline_sig"
         if nonlin == "posenc":
             nonlin = "relu"
             posencode = True
@@ -88,7 +79,6 @@ if __name__ == "__main__":
         else:
             posencode = False
             sidelength = H
-
         model = models.get_INR(
             nonlin=nonlin,
             in_features=2,
@@ -97,7 +87,7 @@ if __name__ == "__main__":
             hidden_layers=hidden_layers,
             first_omega_0=omega0,
             hidden_omega_0=omega0,
-            scale=sigma0,
+            scale=sigma,
             pos_encode=posencode,
             sidelength=sidelength,
         )
@@ -176,14 +166,13 @@ if __name__ == "__main__":
         metrics[nonlin] = {
             "Number of parameters": utils.count_parameters(model),
             "Best PSNR": utils.psnr(im, best_img),
-            "Expected PSNR": expected[i],
-            "PSNR Difference": abs(utils.psnr(im, best_img) - expected[i])
         }
+        utils.log(f"Number of parameters: {utils.count_parameters(model)}, Best PSNR: {utils.psnr(im, best_img)}")
 
-    os.makedirs("/rds/general/user/atk23/home/wire/results/denoising",
+    os.makedirs("/rds/general/user/atk23/home/wire/results/denoising/bspline_analysis",
                 exist_ok=True)
-    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/info.mat",
+    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/bspline_analysis/sigma_info.mat",
                mdict)
-    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/metrics.mat", metrics)
+    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/bspline_analysis/sigma_metrics.mat", metrics)
 
-    utils.tabulate_results("/rds/general/user/atk23/home/wire/results/denoising/metrics.mat")
+    utils.tabulate_results("/rds/general/user/atk23/home/wire/results/denoising/bspline_metrics.mat")

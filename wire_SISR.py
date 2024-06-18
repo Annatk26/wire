@@ -20,10 +20,12 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from modules import models
 from modules import utils
+from pprint import pprint
 
 models = importlib.reload(models)
 
 if __name__ == '__main__':
+    utils.log('Starting SISR experiment')
     nonlin_types = [
         'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     ]  # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
@@ -46,6 +48,7 @@ if __name__ == '__main__':
     # Gabor filter constants
     omega0 = 8.0  # Frequency of sinusoid
     sigma0 = 9.0  # Sigma of Gaussian
+    utils.log(f'Omega0: {omega0}, Sigma0: {sigma0}')
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
@@ -87,8 +90,6 @@ if __name__ == '__main__':
                        interpolation=cv2.INTER_LINEAR)
 
     for i, nonlin in enumerate(nonlin_types):
-        utils.log(f'Starting SISR with {nonlin}')
-
         learning_rate = {
             'wire': 5e-3,
             'siren': 2e-3,
@@ -97,6 +98,7 @@ if __name__ == '__main__':
             'posenc': 1e-3,
             'gauss': 2e-3
         }[nonlin]
+        utils.log(f'{nonlin} learning rate: {learning_rate}')
         if nonlin == 'posenc':
             nonlin = 'relu'
             posencode = True
@@ -137,10 +139,6 @@ if __name__ == '__main__':
 
         im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
         im_bi_ten = torch.tensor(im_bi).cuda().permute(2, 0, 1)[None, ...]
-
-        utils.log(
-            f'Original PSNR: {utils.psnr(im, im_bi)} & Original SSIM: {ssim_func(im, im_bi, multichannel=True)}'
-        )
 
         mse_array = torch.zeros(niters, device='cuda')
         ssim_array = torch.zeros(niters, device='cuda')
@@ -197,20 +195,15 @@ if __name__ == '__main__':
             'mse_array': mse_array.detach().cpu().numpy(),
             'ssim_array': mse_array.detach().cpu().numpy(),
         }
-
         metrics[nonlin] = {
-            'Best MSE': -10 * torch.log10(best_mse),
+            'Best MSE': -10 * torch.log10(best_mse).item(),
             'Best SSIM': ssim_func(im, best_img, multichannel=True),
             'Expected MSE': expected["Expected MSE"][i],
             'Expected SSIM': expected["Expected SSIM"][i],
-            'MSE Difference': abs(-10 * torch.log10(best_mse) - expected["Expected MSE"][i]),
+            'MSE Difference': abs((-10 * torch.log10(best_mse).item()) - expected["Expected MSE"][i]),
             'SSIM Difference': abs(ssim_func(im, best_img, multichannel=True) - expected["Expected SSIM"][i])
             #'lpips': lpips_array.min().item()
         }
-
-        utils.log(
-            f'Best MSE: {-10*torch.log10(best_mse)} & Best SSIM: {ssim_func(im, best_img, multichannel=True)}'
-        )
 
         plt.imsave(
             f'/rds/general/user/atk23/home/wire/results/sisr/SR_diff_{nonlin}.png',

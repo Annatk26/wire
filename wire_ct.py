@@ -21,6 +21,7 @@ from modules import utils
 from modules import lin_inverse
 
 if __name__ == '__main__':
+    utils.log('Starting CT experiment')
     nonlin_types = [
         'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     ]  # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
@@ -44,9 +45,9 @@ if __name__ == '__main__':
     noise_snr = 2  # Readout noise (dB)
 
     # Gabor filter constants.
-    omega0 = 8.0  # Frequency of sinusoid
-    sigma0 = 9.0  # Sigma of Gaussian
-
+    omega0 = 9.0  # Frequency of sinusoid
+    sigma0 = 12.0  # Sigma of Gaussian
+    utils.log(f'Omega0: {omega0}, Sigma0: {sigma0}')
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
     hidden_features = 300  # Number of hidden units per layer
@@ -64,9 +65,8 @@ if __name__ == '__main__':
 
     # Create model
     for i, nonlin in enumerate(nonlin_types):
-        utils.log(f'Running CT with {nonlin} nonlinearity')
         learning_rate = {
-            "wire2d": 5e-3,
+            #"wire2d": 5e-3,
             "wire": 5e-3,
             "siren": 2e-3,
             "mfn": 5e-2,
@@ -74,6 +74,7 @@ if __name__ == '__main__':
             "posenc": 1e-3,
             "gauss": 2e-3,
         }[nonlin]
+        utils.log(f'{nonlin} learning rate: {learning_rate}')
         if nonlin == 'posenc':
             nonlin = 'relu'
             posencode = True
@@ -150,6 +151,10 @@ if __name__ == '__main__':
 
         psnr2 = utils.psnr(img, img_estim_cpu)
         ssim2 = ssim_func(img, img_estim_cpu)
+        
+        if posencode:
+            nonlin = "posenc"
+
         mdict = {
             'rec': img_estim_cpu,
             'loss_array': loss_array,
@@ -164,8 +169,6 @@ if __name__ == '__main__':
             'PSNR Difference': abs(psnr2 - expected['Expected PSNR'][i]),
             'SSIM Difference': abs(ssim2 - expected['Expected SSIM'][i]),
         }
-
-        print(f'PSNR: {psnr2:.2f}, SSIM: {ssim2:.2f}')
     
     io.savemat(f'/rds/general/user/atk23/home/wire/results/ct/info.mat', mdict)
     io.savemat(f'/rds/general/user/atk23/home/wire/results/ct/metrics.mat',

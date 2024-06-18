@@ -7,13 +7,15 @@ from . import relu
 from . import siren
 from . import wire
 from . import wire2d
+from . import bspline_sig
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
               'relu': relu,
               'siren': siren,
               'wire': wire,
-              'wire2d': wire2d}
+              'wire2d': wire2d,
+              'bspline_sig': bspline_sig}
 
 def get_INR(nonlin, in_features, hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,
@@ -56,7 +58,7 @@ def get_INR(nonlin, in_features, hidden_features, hidden_layers,
                         out_features,
                         outermost_linear,
                         first_omega_0,
-                        hidden_omega_0,
+                        hidden_omega_0, 
                         scale,
                         pos_encode,
                         sidelength,
