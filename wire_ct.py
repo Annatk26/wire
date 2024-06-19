@@ -28,7 +28,6 @@ if __name__ == '__main__':
     niters = 5000  # Number of SGD iterations
     #learning_rate = 5e-3        # Learning rate.
 
-    os.makedirs('/rds/general/user/atk23/home/wire/results/ct', exist_ok=True)
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
     nmeas = 100  # Number of CT measurement
@@ -45,7 +44,7 @@ if __name__ == '__main__':
     noise_snr = 2  # Readout noise (dB)
 
     # Gabor filter constants.
-    omega0 = 9.0  # Frequency of sinusoid
+    omega0 = 15.0  # Frequency of sinusoid
     sigma0 = 12.0  # Sigma of Gaussian
     utils.log(f'Omega0: {omega0}, Sigma0: {sigma0}')
     # Network parameters
@@ -57,7 +56,7 @@ if __name__ == '__main__':
 
     # Create phantom
     img = cv2.imread(
-        '/rds/general/user/atk23/home/wire/data/chest.png').astype(
+        '/home/atk23/wire/data/chest.png').astype(
             np.float32)[..., 1]
     img = utils.normalize(img, True)
     [H, W] = img.shape
@@ -162,6 +161,9 @@ if __name__ == '__main__':
             'gt': img,
         }
         metrics[nonlin] = {
+            'Omega0': omega0,
+            'Sigma0': sigma0,
+            'Learning Rate': learning_rate,
             'Best PSNR': psnr2,
             'Best SSIM': ssim2,
             'Expected PSNR': expected['Expected PSNR'][i],
@@ -169,8 +171,13 @@ if __name__ == '__main__':
             'PSNR Difference': abs(psnr2 - expected['Expected PSNR'][i]),
             'SSIM Difference': abs(ssim2 - expected['Expected SSIM'][i]),
         }
+
+    folder_name = utils.make_unique("ct", "/home/atk23/wire/baseline_results/")
+    os.makedirs(f"/home/atk23/wire/baseline_results/{folder_name}",
+                exist_ok=True)
+    io.savemat(f"/home/atk23/wire/baseline_results/{folder_name}/info.mat",
+               mdict)
+    io.savemat(f"/home/atk23/wire/baseline_results/{folder_name}/metrics.mat", metrics)
+
+    utils.tabulate_results(f"/home/atk23/wire/baseline_results/{folder_name}/metrics.mat")
     
-    io.savemat(f'/rds/general/user/atk23/home/wire/results/ct/info.mat', mdict)
-    io.savemat(f'/rds/general/user/atk23/home/wire/results/ct/metrics.mat',
-               metrics)
-    utils.tabulate_results('/rds/general/user/atk23/home/wire/results/ct/metrics.mat')

@@ -43,7 +43,7 @@ if __name__ == "__main__":
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
     im = utils.normalize(
-        plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(
+        plt.imread("/home/atk23/wire/data/parrot.png").astype(
             np.float32),
         True,
     )
@@ -174,16 +174,20 @@ if __name__ == "__main__":
             "time_array": time_array.detach().cpu().numpy(),
         }
         metrics[nonlin] = {
+            "Omega0": omega0,
+            "Sigma0": sigma0,
+            "Learning rate": learning_rate,
             "Number of parameters": utils.count_parameters(model),
             "Best PSNR": utils.psnr(im, best_img),
             "Expected PSNR": expected[i],
             "PSNR Difference": abs(utils.psnr(im, best_img) - expected[i])
         }
 
-    os.makedirs("/rds/general/user/atk23/home/wire/results/denoising",
+    folder_name = utils.make_unique("denoising", "/home/atk23/wire/baseline_results/")
+    os.makedirs(f"/home/atk23/wire/baseline_results/{folder_name}",
                 exist_ok=True)
-    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/info.mat",
+    io.savemat(f"/home/atk23/wire/baseline_results/{folder_name}/info.mat",
                mdict)
-    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/metrics.mat", metrics)
+    io.savemat(f"/home/atk23/wire/baseline_results/{folder_name}/metrics.mat", metrics)
 
-    utils.tabulate_results("/rds/general/user/atk23/home/wire/results/denoising/metrics.mat")
+    utils.tabulate_results(f"/home/atk23/wire/baseline_results/{folder_name}/metrics.mat")

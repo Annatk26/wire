@@ -5,7 +5,7 @@
 '''
 
 from datetime import datetime
-
+import os
 # Plotting
 import cv2
 import matplotlib.pyplot as plt
@@ -289,24 +289,29 @@ def tabulate_results(mat_file):
     for key in mat.keys():
         if not key.startswith('__'):
             variables[key] = mat[key]
-    nonlin_all = ['wire', 'gauss', 'siren', 'relu', 'posenc', 'mfn', 'wire2d']
+    nonlin_all = list(variables.keys())
     data = {}
-
     first_nonlin = nonlin_all[0]
     for key in mat[first_nonlin][0, 0].dtype.names:
         data[key] = []
     
-    nonlin = []
-    for types in nonlin_all:
-        if types in variables.keys():
-            nonlin.append(types)        
-            values = mat[types][0, 0]
-            for key in values.dtype.names:
-                data[key].append(values[key][0, 0])
+    for types in nonlin_all:        
+        values = mat[types][0, 0]
+        for key in values.dtype.names:
+            data[key].append(values[key][0, 0])
 
     # Create a DataFrame from the dictionary where the keys are the columns and the first two values are the rows
-    df = pd.DataFrame(data, index=nonlin)
+    df = pd.DataFrame(data, index=nonlin_all)
 
     # Create a table of the variables and their values 
     print(df)
+
+def make_unique(folder_name, folder_path):
+    counter = 1
+    folder_path = os.path.join(folder_path, folder_name)
+    while os.path.exists(folder_path):
+        folder_name = f"{folder_name}_{counter}"
+        folder_path = os.path.join(folder_path, folder_name)
+        counter += 1
+    return folder_name
 

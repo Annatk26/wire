@@ -10,8 +10,8 @@ class Bsplines(nn.Module):
                     out_features,
                     bias=True,
                     is_first=False,
-                    omega0=1.0, # c = 1.0
-                    sigma0=10.0, # k = 10.0
+                    omega0=-0.2, # a = 1.0
+                    sigma0=15.0, # k = 10.0
                     trainable=False):
             super().__init__()
             self.omega_0 = omega0
@@ -31,8 +31,14 @@ class Bsplines(nn.Module):
         lin = self.linear(input)
         scale_in = self.scale_0 * lin
         coeff = self.omega_0
-        return coeff*(1 / (1 + torch.exp(-scale_in + self.scale_0*(0.3)))) - coeff*(1 / (1 + torch.exp(-scale_in + self.scale_0*(-0.3))))
-    
+        is_neg = input[:,:,0]<0
+        for i in range(is_neg.shape[1]):
+            if is_neg[:,i].item():
+                return 1/(1 + torch.exp(-scale_in + self.scale_0*coeff))
+            else:
+                return 1/(1 + torch.exp(scale_in + self.scale_0*coeff))
+
+        
 class INR(nn.Module):
 
     def __init__(self,
@@ -41,9 +47,9 @@ class INR(nn.Module):
                  hidden_layers,
                  out_features,
                  outermost_linear=True,
-                 first_omega_0=30,
-                 hidden_omega_0=30.,
-                 scale=10.0,
+                 first_omega_0=-0.2,
+                 hidden_omega_0=-0.2,
+                 scale=15.0,
                  pos_encode=False,
                  sidelength=512,
                  fn_samples=None,

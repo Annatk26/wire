@@ -11,4 +11,5 @@ PyMCubes
 open3d
 pystackreg
 Pillow
+pycollada 
  

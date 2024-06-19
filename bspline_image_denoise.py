@@ -16,13 +16,13 @@ from torch.optim.lr_scheduler import LambdaLR
 
 if __name__ == "__main__":
     utils.log("Starting image denoising experiment")
-    utils.log("Analysis of different c")
+   # utils.log("Analysis of different c")
     plt.gray()
     #nonlin_types = ["bspline_sig"]
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
     niters = 2000  # Number of SGD iterations (2000)
-    learning_rate = 1e-3  # Learning rate
+    learning_rate = np.linspace(1e-3, 5e-2, 30)  # Learning rate
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     # Gabor filter constants.
     # We suggest omega0 = 4 and sigma0 = 4 for denoising, and omega0=20, sigma0=30 for image representation
     #omega0 = 5.0  # Frequency of sinusoid
-    omega0 = 5.0
-    sigma0 = [12.0, 14.0, 15.0, 19.0]  # Sigma of Gaussian (8.0)
+    omega0 = 0.07 
+    sigma0 = 23.68  # Sigma of Gaussian (8.0)
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
     im = utils.normalize(
-        plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(
+        plt.imread("/home/atk23/wire/data/parrot.png").astype(
             np.float32),
         True,
     )
@@ -62,12 +62,14 @@ if __name__ == "__main__":
     gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
     gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 
-    for sigma in sigma0:
-        # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
-        # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
-        # Set learning rate based on nonlinearity
-        utils.log(f"Omega0: {omega0}, Sigma0: {sigma}")
-        utils.log(f"BSpline learning rate: {learning_rate}")
+    #for sigma in sigma0:
+    # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
+    # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
+    best_psnr = []
+    # Set learning rate based on nonlinearity
+    for i, rate in enumerate(learning_rate):
+        #utils.log(f"Omega0: {omega0}, Sigma0: {sigma}")
+        #utils.log(f"BSpline learning rate: {learning_rate}")
         nonlin = "bspline_sig"
         if nonlin == "posenc":
             nonlin = "relu"
@@ -79,6 +81,7 @@ if __name__ == "__main__":
         else:
             posencode = False
             sidelength = H
+
         model = models.get_INR(
             nonlin=nonlin,
             in_features=2,
@@ -87,7 +90,7 @@ if __name__ == "__main__":
             hidden_layers=hidden_layers,
             first_omega_0=omega0,
             hidden_omega_0=omega0,
-            scale=sigma,
+            scale=sigma0,
             pos_encode=posencode,
             sidelength=sidelength,
         )
@@ -95,9 +98,9 @@ if __name__ == "__main__":
         model.cuda()
 
         # Create an optimizer
-        optim = torch.optim.Adam(lr=learning_rate *
-                                 min(1, maxpoints / (H * W)),
-                                 params=model.parameters())
+        optim = torch.optim.Adam(lr=rate *
+                                    min(1, maxpoints / (H * W)),
+                                    params=model.parameters())
 
         # Schedule to reduce lr to 0.1 times the initial rate in final epoch
         scheduler = LambdaLR(optim, lambda x: 0.1**min(x / niters, 1))
@@ -155,7 +158,8 @@ if __name__ == "__main__":
         if posencode:
             nonlin = "posenc"
 
-        mdict[nonlin] = {
+        mdict[str(i)] = {
+            "Learning rate": rate,
             "rec": best_img,
             "gt": im,
             "im_noisy": im_noisy,
@@ -163,16 +167,28 @@ if __name__ == "__main__":
             "mse_array": mse_array.detach().cpu().numpy(),
             "time_array": time_array.detach().cpu().numpy(),
         }
-        metrics[nonlin] = {
+        metrics[str(i)] = {
+            "Omega0": omega0,
+            "Sigma0": sigma0,
+            "Learning Rate": rate,
             "Number of parameters": utils.count_parameters(model),
             "Best PSNR": utils.psnr(im, best_img),
         }
-        utils.log(f"Number of parameters: {utils.count_parameters(model)}, Best PSNR: {utils.psnr(im, best_img)}")
-
-    os.makedirs("/rds/general/user/atk23/home/wire/results/denoising/bspline_analysis",
+        best_psnr.append(utils.psnr(im, best_img))
+        #utils.log(f"Number of parameters: {utils.count_parameters(model)}, Best PSNR: {utils.psnr(im, best_img)}")
+    
+    folder_name = utils.make_unique("sigmoid_rate", "/home/atk23/wire/bspline_results/")
+    os.makedirs(f"/home/atk23/wire/bspline_results/{folder_name}",
                 exist_ok=True)
-    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/bspline_analysis/sigma_info.mat",
+    io.savemat(f"/home/atk23/wire/bspline_results/{folder_name}/info.mat",
                mdict)
-    io.savemat(f"/rds/general/user/atk23/home/wire/results/denoising/bspline_analysis/sigma_metrics.mat", metrics)
+    io.savemat(f"/home/atk23/wire/bspline_results/{folder_name}/metrics.mat", metrics)
 
-    utils.tabulate_results("/rds/general/user/atk23/home/wire/results/denoising/bspline_metrics.mat")
+    #utils.tabulate_results(f"/home/atk23/wire/bspline_results/{folder_name}/metrics.mat")
+    plt.plot(learning_rate, best_psnr, label="Best PSNR")
+    plt.xlabel("Learning rate")
+    plt.ylabel("PSNR")
+    plt.title("PSNR vs Learning rate")
+    plt.legend()
+    plt.savefig(f"/home/atk23/wire/bspline_results/{folder_name}/best_psnr.png")
+    utils.log(f"Best PSNR: {np.max(best_psnr)} at k = {learning_rate[np.argmax(best_psnr)]}")
