@@ -20,7 +20,6 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from modules import models
 from modules import utils
-from pprint import pprint
 
 models = importlib.reload(models)
 
@@ -37,8 +36,10 @@ if __name__ == '__main__':
 
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
-    os.makedirs('/rds/general/user/atk23/home/wire/results/sisr',
-                exist_ok=True)  # Create a directory to store results
+    
+    folder_name = utils.make_unique("sisr", "/rds/general/user/atk23/home/wire/baseline_results")
+    os.makedirs(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}",
+                exist_ok=True)
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
@@ -196,6 +197,9 @@ if __name__ == '__main__':
             'ssim_array': mse_array.detach().cpu().numpy(),
         }
         metrics[nonlin] = {
+            'Omega0': omega0,
+            'Sigma0': sigma0,
+            'Learning rate': learning_rate,
             'Best MSE': -10 * torch.log10(best_mse).item(),
             'Best SSIM': ssim_func(im, best_img, multichannel=True),
             'Expected MSE': expected["Expected MSE"][i],
@@ -205,23 +209,22 @@ if __name__ == '__main__':
             #'lpips': lpips_array.min().item()
         }
 
+        # plt.plot(-10 * torch.log10(mse_array).detach().cpu().numpy())
+        # plt.xlabel('Iterations')
+        # plt.ylabel('MSE')
+        # plt.title('MSE vs Iterations')
+        # plt.grid(True)
+        # plt.show()
         plt.imsave(
-            f'/rds/general/user/atk23/home/wire/results/sisr/SR_diff_{nonlin}.png',
+            f'/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/MSE_{nonlin}.png',
             np.clip(abs(im - best_img), 0, 1),
             vmin=0.0,
             vmax=0.1)
 
-        plt.plot(-10 * torch.log10(mse_array).detach().cpu().numpy())
-        plt.xlabel('Iterations')
-        plt.ylabel('MSE')
-        plt.title('MSE vs Iterations')
-        plt.grid(True)
-        # plt.show()
+   
+    io.savemat(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/info.mat",
+               mdict)
+    io.savemat(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat", metrics)
 
-    io.savemat(
-        f'/rds/general/user/atk23/home/wire/results/sisr/info.mat',
-        mdict)
-    io.savemat(
-        f'/rds/general/user/atk23/home/wire/results/sisr/metrics.mat',
-        metrics)
-    utils.tabulate_results('/rds/general/user/atk23/home/wire/results/sisr/metrics.mat')
+    utils.tabulate_results(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat", f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}")
+    utils.log('Finished SISR experiment')

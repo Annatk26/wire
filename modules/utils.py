@@ -280,7 +280,7 @@ def log(message):
     print(f"{datetime.now()} - {message}")
 
 
-def tabulate_results(mat_file):
+def tabulate_results(mat_file, path):
     # Load the .mat file
     mat = scipy.io.loadmat(mat_file)
 
@@ -294,8 +294,8 @@ def tabulate_results(mat_file):
     first_nonlin = nonlin_all[0]
     for key in mat[first_nonlin][0, 0].dtype.names:
         data[key] = []
-    
-    for types in nonlin_all:        
+
+    for types in nonlin_all:
         values = mat[types][0, 0]
         for key in values.dtype.names:
             data[key].append(values[key][0, 0])
@@ -303,8 +303,13 @@ def tabulate_results(mat_file):
     # Create a DataFrame from the dictionary where the keys are the columns and the first two values are the rows
     df = pd.DataFrame(data, index=nonlin_all)
 
-    # Create a table of the variables and their values 
-    print(df)
+    # Create a table of the variables and their values
+    # print(df)
+    # pd.set_option('display.max_columns', None)  # Show all columns
+    # pd.set_option('display.width', None)  # Automatically adjust the display width
+    # pd.set_option('display.max_colwidth', None)  # No limit on column width
+    # pd.set_option('display.max_rows', None)  # Show all rows
+    df.to_markdown(os.path.join(path, "metrics_table.md"), floatfmt=".2f")
 
 def make_unique(folder_name, folder_path):
     counter = 1
@@ -314,4 +319,5 @@ def make_unique(folder_name, folder_path):
         folder_path = os.path.join(folder_path, folder_name)
         counter += 1
     return folder_name
+
 

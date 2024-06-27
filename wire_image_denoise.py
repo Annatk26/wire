@@ -15,14 +15,20 @@ from scipy import io
 from torch.optim.lr_scheduler import LambdaLR
 
 if __name__ == "__main__":
-    utils.log("Starting image denoising experiment")
+    utils.log(
+        "Starting image denoising experiment with multi-scale activation functions"
+    )
     plt.gray()
-    nonlin_types = ["wire", "siren", "mfn", "relu", "posenc", "gauss"]
-    
+    # nonlin_types = ["wire", "siren", "mfn", "relu", "posenc", "gauss"]
+    nonlin_types = ["wire"]
+    baseline = False  # baseline implementations
+    trainable = False  # if model parameters are trainable
+
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
+
     niters = 2000  # Number of SGD iterations (2000)
-    expected = [30.2, 26.6, 28.1, 0, 29.2, 29.7] # Expected PSNR values
+    expected = [30.2, 26.6, 28.1, 0, 29.2, 29.7]  # Expected PSNR values
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
@@ -37,13 +43,14 @@ if __name__ == "__main__":
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
-    hidden_features = 256  # Number of hidden units per layer
+    # hidden_features = 256  # Number of hidden units per layer
+    hidden_features = 300  # Number of hidden units per layer
     maxpoints = 256 * 256  # Batch size
 
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
     im = utils.normalize(
-        plt.imread("/home/atk23/wire/data/parrot.png").astype(
+        plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(
             np.float32),
         True,
     )
@@ -75,7 +82,14 @@ if __name__ == "__main__":
         }[nonlin]
         utils.log(f"{nonlin} learning rate: {learning_rate}")
         if nonlin == "wire":
-            sigma0 = 8.0
+            sigma0 = 6.0  # 8.0
+            size = np.round(hidden_features / np.sqrt(2))
+            if size % 3 == 0:
+                scale_tensor = [np.repeat([2.0, 10.0, 20.0], int(size / 3))]
+            else:
+                scale_tensor = np.repeat([20.0, 10.0, 2.0], [71, 71, 70])            
+            # scale_tensor = np.linspace(2.0, 20.0,
+                                    #    int(hidden_features / np.sqrt(2)))
         utils.log(f"Omega0: {omega0}, Sigma0: {sigma0}")
 
         if nonlin == "posenc":
@@ -98,8 +112,9 @@ if __name__ == "__main__":
             first_omega_0=omega0,
             hidden_omega_0=omega0,
             scale=sigma0,
+            scale_tensor=scale_tensor,
             pos_encode=posencode,
-            sidelength=sidelength,
+            sidelength=sidelength
         )
 
         model.cuda()
@@ -165,6 +180,10 @@ if __name__ == "__main__":
         if posencode:
             nonlin = "posenc"
 
+        utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
+        utils.log(
+            f"Trained scale0: {model.net[0].scale_0.item()} & Trained omega0: {model.net[0].omega_0.item()}"
+        )
         mdict[nonlin] = {
             "rec": best_img,
             "gt": im,
@@ -173,21 +192,38 @@ if __name__ == "__main__":
             "mse_array": mse_array.detach().cpu().numpy(),
             "time_array": time_array.detach().cpu().numpy(),
         }
-        metrics[nonlin] = {
-            "Omega0": omega0,
-            "Sigma0": sigma0,
-            "Learning rate": learning_rate,
-            "Number of parameters": utils.count_parameters(model),
-            "Best PSNR": utils.psnr(im, best_img),
-            "Expected PSNR": expected[i],
-            "PSNR Difference": abs(utils.psnr(im, best_img) - expected[i])
-        }
+        if baseline:
+            metrics[nonlin] = {
+                "Omega0": omega0,
+                "Sigma0": sigma0,
+                "Learning rate": learning_rate,
+                "Number of parameters": utils.count_parameters(model),
+                "Best PSNR": utils.psnr(im, best_img),
+                "Expected PSNR": expected[i],
+                "PSNR Difference": abs(utils.psnr(im, best_img) - expected[i])
+            }
+        else:
+            metrics[nonlin] = {
+                "Omega0": omega0,
+                "Sigma0": sigma0,
+                "Learning rate": learning_rate,
+                "Number of parameters": utils.count_parameters(model),
+                "Best PSNR": utils.psnr(im, best_img),
+            }
 
-    folder_name = utils.make_unique("denoising", "/home/atk23/wire/baseline_results/")
-    os.makedirs(f"/home/atk23/wire/baseline_results/{folder_name}",
-                exist_ok=True)
-    io.savemat(f"/home/atk23/wire/baseline_results/{folder_name}/info.mat",
-               mdict)
-    io.savemat(f"/home/atk23/wire/baseline_results/{folder_name}/metrics.mat", metrics)
+    folder_name = utils.make_unique(
+        "wire_denoising",
+        "/rds/general/user/atk23/home/wire/multiscale_results")
+    os.makedirs(
+        f"/rds/general/user/atk23/home/wire/multiscale_results/{folder_name}",
+        exist_ok=True)
+    io.savemat(
+        f"/rds/general/user/atk23/home/wire/multiscale_results/{folder_name}/info.mat",
+        mdict)
+    io.savemat(
+        f"/rds/general/user/atk23/home/wire/multiscale_results/{folder_name}/metrics.mat",
+        metrics)
 
-    utils.tabulate_results(f"/home/atk23/wire/baseline_results/{folder_name}/metrics.mat")
+    utils.tabulate_results(
+        f"/rds/general/user/atk23/home/wire/multiscale_results/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/{folder_name}")

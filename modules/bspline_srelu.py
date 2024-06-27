@@ -1,16 +1,17 @@
 import torch
-import torch.nn.functional as F
 from torch import nn
+from torch.nn import functional as F
+import numpy as np
 
-class Bsplines_sig(nn.Module):
+class Bsplines_srelu(nn.Module):
     def __init__(self,
-                    in_features,
-                    out_features,
-                    bias=True,
-                    is_first=False,
-                    omega0=-0.2, # a = 1.0
-                    sigma0=15.0, # k = 10.0
-                    trainable=False):
+                in_features,
+                out_features,
+                bias=True,
+                is_first=False,
+                omega0=-0.2, # a = 1.0
+                sigma0=6.0, # k = 10.0
+                trainable=True):
             super().__init__()
             self.omega_0 = omega0
             self.scale_0 = sigma0
@@ -18,7 +19,7 @@ class Bsplines_sig(nn.Module):
 
             self.in_features = in_features
 
-            self.omega_0 = nn.Parameter(self.omega_0 * torch.ones(1), trainable)
+            # self.omega_0 = nn.Parameter(self.omega_0 * torch.ones(1), trainable)
             self.scale_0 = nn.Parameter(self.scale_0 * torch.ones(1), trainable)
 
             self.linear = nn.Linear(in_features,
@@ -27,16 +28,9 @@ class Bsplines_sig(nn.Module):
 
     def forward(self, input):
         lin = self.linear(input)
-        scale_in = self.scale_0 * lin
-        coeff = self.omega_0
-        is_neg = input[:,:,0]<0
-        for i in range(is_neg.shape[1]):
-            if is_neg[:,i].item():
-                return 1/(1 + torch.exp(-scale_in + self.scale_0*coeff))
-            else:
-                return 1/(1 + torch.exp(scale_in + self.scale_0*coeff))
+        relu = torch.nn.ReLU()
+        return (relu(-(self.scale_0*lin-1))*relu(self.scale_0*lin))**2
 
-        
 class INR(nn.Module):
 
     def __init__(self,
@@ -48,6 +42,7 @@ class INR(nn.Module):
                  first_omega_0=-0.2,
                  hidden_omega_0=-0.2,
                  scale=15.0,
+                 scale_tensor=[],
                  pos_encode=False,
                  sidelength=512,
                  fn_samples=None,
@@ -55,7 +50,7 @@ class INR(nn.Module):
         super().__init__()
 
         # All results in the paper were with the default complex 'gabor' nonlinearity
-        self.nonlin = Bsplines_sig
+        self.nonlin = Bsplines_srelu
 
         # Since complex numbers are two real numbers, reduce the number of
         # hidden parameters by 2
@@ -74,7 +69,7 @@ class INR(nn.Module):
                         omega0=first_omega_0,
                         sigma0=scale,
                         is_first=True,
-                        trainable=False))
+                        trainable=True))
 
         for i in range(hidden_layers):
             self.net.append(
@@ -107,6 +102,19 @@ class INR(nn.Module):
          #   return output.real
 
         return output
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
