@@ -29,7 +29,7 @@ class Bsplines_form(nn.Module):
         self.linear = nn.Linear(in_features, out_features, bias=bias)
         if init_weights:
             self.init_weights()
-    
+        
     def init_weights(self):
         with torch.no_grad():
             if self.is_first:
@@ -117,48 +117,28 @@ class INR(nn.Module):
         self.pos_encode = False
 
         self.nonlin = Bsplines_form
-        if multiscale:
-            self.nonlin_scale = Scaled_Bsplines_form
-            hidden_layers = hidden_layers - 1
-            self.net.append(
-            self.nonlin_scale(in_features,
-                        scaled_hidden_features,
-                        omega0=first_omega_0,
-                        sigma0=scale_tensor,
-                        is_first=True,
-                        trainable=False))
-            self.net.append(
-            self.nonlin(scaled_hidden_features*len(scale_tensor),
-                        hidden_features,
-                        omega0=hidden_omega_0,
-                        sigma0=scale,
-                        trainable=False))
-        else:
-            self.net.append(
-            self.nonlin(in_features,
-                        hidden_features,
-                        omega0=first_omega_0,
-                        sigma0=scale,
-                        is_first=True,
-                        trainable=False))
-
-        
+        self.nonlin_scale = Scaled_Bsplines_form
+        hidden_layers = hidden_layers - 1
+        self.net.append(
+        self.nonlin_scale(in_features,
+                    scaled_hidden_features,
+                    omega0=first_omega_0,
+                    sigma0=scale_tensor,
+                    is_first=True,
+                    trainable=False))
+        self.net.append(
+        self.nonlin(scaled_hidden_features*len(scale_tensor),
+                    hidden_features,
+                    omega0=hidden_omega_0,
+                    sigma0=scale,
+                    trainable=False))
 
         # Since complex numbers are two real numbers, reduce the number of
         # hidden parameters by 2
         #hidden_features = int(hidden_features / np.sqrt(2))
         #dtype = torch.cfloat
-        
 
-        # self.net.append(
-        #     self.nonlin(in_features,
-        #                 hidden_features,
-        #                 omega0=first_omega_0,
-        #                 sigma0=scale,
-        #                 is_first=True,
-        #                 trainable=True))
-
-        for i in range(hidden_layers):
+        for i in range(hidden_layers-1):
             self.net.append(
                 self.nonlin(hidden_features,
                             hidden_features,
@@ -184,8 +164,4 @@ class INR(nn.Module):
 
     def forward(self, coords):
         output = self.net(coords)
-
-        #if self.wavelet == 'gabor':
-        #   return output.real
-
         return output

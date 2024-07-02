@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Somewhat hacky way of importing
 from . import gauss
 from . import mfn
@@ -7,7 +6,9 @@ from . import relu
 from . import siren
 from . import wire
 from . import wire2d
-from . import bspline_sig
+from . import bspline_form
+from . import bspline_cubic
+from . import bspline_mscale_2
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
@@ -15,11 +16,13 @@ model_dict = {'gauss': gauss,
               'siren': siren,
               'wire': wire,
               'wire2d': wire2d,
-              'bspline_sig': bspline_sig}
+              'bspline_form': bspline_form, 
+              'bspline_cubic': bspline_cubic,
+              'bspline_mscale_2': bspline_mscale_2}
 
-def get_INR(nonlin, in_features, hidden_features, hidden_layers,
+def get_INR(nonlin, in_features, hidden_features, scaled_hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,
-            hidden_omega_0=30, scale=10, pos_encode=False,
+            hidden_omega_0=30, scale=10, scale_tensor=[], pos_encode=False, multi_scale=False,
             sidelength=512, fn_samples=None, use_nyquist=True):
     '''
         Function to get a class instance for a given type of
@@ -54,15 +57,18 @@ def get_INR(nonlin, in_features, hidden_features, hidden_layers,
     inr_mod = model_dict[nonlin]
     model = inr_mod.INR(in_features,
                         hidden_features,
+                        scaled_hidden_features,
                         hidden_layers,
                         out_features,
                         outermost_linear,
                         first_omega_0,
-                        hidden_omega_0, 
+                        hidden_omega_0,
                         scale,
+                        scale_tensor,
                         pos_encode,
+                        multi_scale,
                         sidelength,
                         fn_samples,
                         use_nyquist)
-    
+
     return model

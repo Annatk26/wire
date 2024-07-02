@@ -17,14 +17,14 @@ from torch.optim.lr_scheduler import LambdaLR
 
 if __name__ == "__main__":
     utils.log(
-        "Starting image denoising experiment for Quadratic B-spline non-linearity with multi-scale in the first layer"
+        "Starting image denoising experiment for Quadratic B-spline non-linearity with multi-scale subnetworks"
     )
     multiscale_opt = [True, False]
     weight_init = False
     # utils.log("Weight initialization: He Initialization")
     # utils.log("Analysis of different c")
     plt.gray()
-    nonlin = "bspline_form"  # Various implementations of B-spline
+    nonlin = "bspline_mscale_2"  # Various implementations of B-spline
     utils.log(f"Non-linearity: {nonlin}")
 
     mdict = {}  # Dictionary to store info of each non-linearity
@@ -48,18 +48,19 @@ if __name__ == "__main__":
     #             [0.3, 0.5, 0.7], [0.5, 1.0, 2.0]]  # Sigma of Gaussian (8.0)
     # sigma0 = 9.5522
     sigma0 = 9.0  # sigma0 = 0.5
-    scale_tensor = [4.0, 8.0, 12.0, 16.0, 20.0, 24.0]
+    scale_tensor = [2.0, 6.0, 10.0, 14.0, 18.0, 22.0]
     learning_rate = 4e-3  # Learning rate
     utils.log(f"Learning rate: {learning_rate}")
     utils.log(f"Sigma0: {sigma0}")
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
-    hidden_features = 256  # Number of hidden units per layer
-    maxpoints = 256 * 256  # Batch size
-    scaled_hidden_features = 16  # Number of hidden units in the first layer
+    hidden_features = 50  # Number of hidden units per layer
+    # maxpoints = 256 * 256  # Batch size
+    maxpoints = 50 ** 2  # Batch size
+    scaled_hidden_features = 50  # Number of hidden units in the first layer
 
-    utils.log(f"Scaled Hidden Features: {scaled_hidden_features}")
+    utils.log(f"Hidden Features: {hidden_features}")
     utils.log(f"Scale tensor: {scale_tensor}")
 
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
@@ -187,7 +188,7 @@ if __name__ == "__main__":
             nonlin = "posenc"
 
         utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
-        utils.log(f"Trained scale: {model.net[1].scale_0.item()}")
+        utils.log(f"Trained scale: {sigma0}")
 
         if multiscale:
             label = "Multi-scale"
@@ -195,7 +196,7 @@ if __name__ == "__main__":
             label = "No Multi-scale"
 
         mdict[label] = {
-            "scale": model.net[1].scale_0.item(),
+            "scale": sigma0,
             "Learning rate": learning_rate,
             "rec": best_img,
             "gt": im,
@@ -205,7 +206,7 @@ if __name__ == "__main__":
             "time_array": time_array.detach().cpu().numpy(),
         }
         metrics[label] = {
-            "Scale": model.net[1].scale_0.item(),
+            "Scale": sigma0,
             "Learning Rate": learning_rate,
             "Number of parameters": utils.count_parameters(model),
             "Best PSNR": utils.psnr(im, best_img),
@@ -215,7 +216,7 @@ if __name__ == "__main__":
         #utils.log(f"Number of parameters: {utils.count_parameters(model)}, Best PSNR: {utils.psnr(im, best_img)}")
 
     folder_name = utils.make_unique(
-        "form_mscale",
+        "form_mscaleNet",
         "/rds/general/user/atk23/home/wire/bspline_cubic_results/denoise")
     os.makedirs(
         f"/rds/general/user/atk23/home/wire/bspline_results/denoise/{folder_name}",

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import numpy as np
 
 import torch
@@ -20,7 +19,7 @@ class GaborLayer(nn.Module):
         self.linear.bias.data.uniform_(-np.pi, np.pi)
 
         # Bias parameters start in zeros
-        #self.bias = nn.Parameter(torch.zeros(self.responses)) if bias else None
+        # self.bias = nn.Parameter(torch.zeros(self.responses)) if bias else None
 
     def forward(self, input):
         norm = (input ** 2).sum(dim=1).unsqueeze(-1) + (self.mu ** 2).sum(dim=1).unsqueeze(0) - 2 * input @ self.mu.T
@@ -36,6 +35,7 @@ class INR(nn.Module):
         super(INR, self).__init__()
 
         self.k = hidden_layers+1
+        # alpha = 6.0
         self.gabon_filters = nn.ModuleList([GaborLayer(in_features, hidden_features, 0, alpha=6.0 / self.k) for _ in range(self.k)])
         self.linear = nn.ModuleList(
             [torch.nn.Linear(hidden_features, hidden_features) for _ in range(self.k - 1)] + [torch.nn.Linear(hidden_features, out_features)])

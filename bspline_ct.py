@@ -21,20 +21,15 @@ from modules import utils
 from modules import lin_inverse
 
 if __name__ == '__main__':
-    utils.log('Starting CT experiment')
-    nonlin_types = [
-        'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
-    ]  # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
+    utils.log('Starting CT experiment with Multi-scale B-Spline (form)')
+    nonlin = 'bspline_form'
     niters = 5000  # Number of SGD iterations
+
     #learning_rate = 5e-3        # Learning rate.
 
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
     nmeas = 100  # Number of CT measurement
-    expected = {
-        "Expected PSNR": [32.3, 30.3, 18.1, 0.0, 28.5, 29.2], 
-        "Expected SSIM": [0.81, 0.76, 0.23, 0.0, 0.71, 0.73]
-    }
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
@@ -46,10 +41,19 @@ if __name__ == '__main__':
     # Gabor filter constants.
     omega0 = 3.0  # Frequency of sinusoid
     sigma0 = 12.0  # Sigma of Gaussian (12.0)
-    utils.log(f'Omega0: {omega0}, Sigma0: {sigma0}')
+    scale_tensor = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]
+    learning_rate = 4e-3
+    mutliscale_all = [True, False]
+    weight_init = False
+
+    utils.log(f'Scale: {sigma0}')
+    utils.log(f'Scale tensor: {scale_tensor}')
+    utils.log(f'{nonlin} Learning rate: {learning_rate}')
+
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
     hidden_features = 300  # Number of hidden units per layer
+    scaled_hidden_features = 32  # Number of hidden units in the first layer
 
     # Generate sampling angles
     thetas = torch.tensor(np.linspace(0, 180, nmeas, dtype=np.float32)).cuda()
@@ -63,17 +67,8 @@ if __name__ == '__main__':
     imten = torch.tensor(img)[None, None, ...].cuda()
 
     # Create model
-    for i, nonlin in enumerate(nonlin_types):
-        learning_rate = {
-            #"wire2d": 5e-3,
-            "wire": 5e-3,
-            "siren": 2e-3,
-            "mfn": 5e-2,
-            "relu": 1e-3,
-            "posenc": 1e-3,
-            "gauss": 2e-3,
-        }[nonlin]
-        utils.log(f'{nonlin} learning rate: {learning_rate}')
+    for multiscale in mutliscale_all:
+        utils.log(f'Multiscale: {multiscale}')
         if nonlin == 'wire':
             omega0 = 3.0
         elif nonlin == 'siren':
@@ -85,15 +80,18 @@ if __name__ == '__main__':
             posencode = False
 
         model = models.get_INR(nonlin=nonlin,
-                            in_features=2,
-                            out_features=1,
-                            hidden_features=hidden_features,
-                            hidden_layers=hidden_layers,
-                            first_omega_0=omega0,
-                            hidden_omega_0=omega0,
-                            scale=sigma0,
-                            pos_encode=posencode,
-                            sidelength=nmeas)
+                               in_features=2,
+                               out_features=1,
+                               hidden_features=hidden_features,
+                               hidden_layers=hidden_layers,
+                               scaled_hidden_features=scaled_hidden_features,
+                               first_omega_0=omega0,
+                               hidden_omega_0=omega0,
+                               scale=sigma0,
+                               scale_tensor=scale_tensor,
+                               pos_encode=posencode,
+                               multi_scale=multiscale,
+                               sidelength=nmeas)
 
         model = model.cuda()
 
@@ -101,7 +99,7 @@ if __name__ == '__main__':
             sinogram = lin_inverse.radon(imten, thetas).detach().cpu()
             sinogram = sinogram.numpy()
             sinogram_noisy = utils.measure(sinogram, noise_snr,
-                                        tau).astype(np.float32)
+                                           tau).astype(np.float32)
             # Set below to sinogram_noisy instead of sinogram to get noise in measurements
             sinogram_ten = torch.tensor(sinogram).cuda()
 
@@ -113,7 +111,7 @@ if __name__ == '__main__':
         coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
 
         optimizer = torch.optim.Adam(lr=learning_rate,
-                                    params=model.parameters())
+                                     params=model.parameters())
 
         # Schedule to 0.1 times the initial rate
         scheduler = LambdaLR(optimizer, lambda x: 0.1**min(x / niters, 1))
@@ -154,34 +152,44 @@ if __name__ == '__main__':
 
         psnr2 = utils.psnr(img, img_estim_cpu)
         ssim2 = ssim_func(img, img_estim_cpu)
-        
+        utils.log(f'Best PSNR: {psnr2}, Best SSIM: {ssim2}')
+        utils.log(f'Trained Scale: {model.net[1].scale_0.item()}')
+
         if posencode:
             nonlin = "posenc"
+        if multiscale:
+            label = "Multiscale"
+        else:
+            label = "No Multiscale"
 
-        mdict[nonlin] = {
+        mdict[label] = {
+            'Weight initialization': weight_init,
+            'Scale': model.net[1].scale_0.item(),
             'rec': img_estim_cpu,
             'loss_array': loss_array,
             'sinogram': sinogram,
             'gt': img,
         }
-        metrics[nonlin] = {
-            'Omega0': omega0,
-            'Sigma0': sigma0,
+        metrics[label] = {
+            'Weight initialization': weight_init,
+            'Scale': model.net[1].scale_0.item(),
             'Learning Rate': learning_rate,
             'Best PSNR': psnr2,
-            'Best SSIM': ssim2,
-            'Expected PSNR': expected['Expected PSNR'][i],
-            'Expected SSIM': expected['Expected SSIM'][i],
-            'PSNR Difference': abs(psnr2 - expected['Expected PSNR'][i]),
-            'SSIM Difference': abs(ssim2 - expected['Expected SSIM'][i]),
+            'Best SSIM': ssim2
         }
 
-    folder_name = utils.make_unique(f"ct_omega_{omega0}", "/rds/general/user/atk23/home/wire/baseline_results")
-    os.makedirs(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}",
-                exist_ok=True)
-    io.savemat(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/info.mat",
-            mdict)
-    io.savemat(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat", metrics)
-
-    utils.tabulate_results(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat", f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}")
-utils.log('CT experiment completed')
+    folder_name = utils.make_unique(
+        f"form_mscale", "/rds/general/user/atk23/home/wire/bspline_results/ct")
+    os.makedirs(
+        f"/rds/general/user/atk23/home/wire/bspline_results/ct/{folder_name}",
+        exist_ok=True)
+    io.savemat(
+        f"/rds/general/user/atk23/home/wire/bspline_results/ct/{folder_name}/info.mat",
+        mdict)
+    io.savemat(
+        f"/rds/general/user/atk23/home/wire/bspline_results/ct/{folder_name}/metrics.mat",
+        metrics)
+    utils.tabulate_results(
+        f"/rds/general/user/atk23/home/wire/bspline_results/ct/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/bspline_results/ct/{folder_name}")
+    utils.log('CT experiment completed')

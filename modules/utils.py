@@ -6,6 +6,7 @@
 
 from datetime import datetime
 import os
+import re
 # Plotting
 import cv2
 import matplotlib.pyplot as plt
@@ -309,15 +310,27 @@ def tabulate_results(mat_file, path):
     # pd.set_option('display.width', None)  # Automatically adjust the display width
     # pd.set_option('display.max_colwidth', None)  # No limit on column width
     # pd.set_option('display.max_rows', None)  # Show all rows
-    df.to_markdown(os.path.join(path, "metrics_table.md"), floatfmt=".2f")
+    df.to_markdown(os.path.join(path, "metrics_table.md"), floatfmt=".3f")
 
 def make_unique(folder_name, folder_path):
-    counter = 1
-    folder_path = os.path.join(folder_path, folder_name)
+    # Regular expression to detect if the folder name ends with _digit
+    suffix_pattern = re.compile(r"_(\d+)$")
+    match = suffix_pattern.search(folder_name)
+
+    if match:
+        # Extract the numeric part and increment it
+        base_name = folder_name[:match.start()]
+        counter = int(match.group(1)) + 1
+    else:
+        base_name = folder_name
+        counter = 1
+
+    new_folder_name = f"{base_name}_{counter}"
+    folder_path = os.path.join(folder_path, new_folder_name)
+
     while os.path.exists(folder_path):
-        folder_name = f"{folder_name}_{counter}"
-        folder_path = os.path.join(folder_path, folder_name)
         counter += 1
-    return folder_name
+        new_folder_name = f"{base_name}_{counter}"
+        folder_path = os.path.join(folder_path, new_folder_name)
 
-
+    return new_folder_name
