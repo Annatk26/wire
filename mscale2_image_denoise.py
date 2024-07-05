@@ -21,8 +21,8 @@ if __name__ == "__main__":
     )
     weight_init = False
     plt.gray()
-    nonlin = "bspline_mscale_1"  # Various implementations of B-spline
-    tvl = True  # Total variation loss  
+    nonlin = "bspline_mscale_2"  # Various implementations of B-spline
+    tvl = False  # Total variation loss  
 
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
@@ -42,17 +42,18 @@ if __name__ == "__main__":
     # sigma0_all = [[1.0, 2.0, 6.0],
     #             [0.3, 0.5, 0.7], [0.5, 1.0, 2.0]]  # Sigma of Gaussian (8.0)
     # sigma0 = 9.5522
-    sigma0_all = [9.0]  # sigma0 = 0.5
-    scale_tensor = [9.0, 9.0, 9.0, 9.0, 9.0, 9.0]
-    learning_rate_all = [4e-3]   # Learning rate
+    sigma0_all = [3.0, 8.0, 12.0, 18.0]  # sigma0 = 0.5
+    scale_tensor = [4.0, 8.0, 12.0, 16.0, 24.0, 32.0]
+    learning_rate_all = [2e-2, 8e-3, 4e-3, 1e-3]   # Learning rate
+
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
-    hidden_features = 256  # Number of hidden units per layer
-    maxpoints = 256 * 256  # Batch size
-    # maxpoints = 192 * 192  # Batch size
-    # scaled_hidden_features = 32  # Number of hidden units in the first layer
-    scaled_hidden_features = 1 # Number of hidden units in the first layer
+    hidden_features = 50  # Number of hidden units per layer
+    # maxpoints = 256 * 256  # Batch size
+    maxpoints = 50 * 50  # Batch size
+    scaled_hidden_features = 32  # Number of hidden units in the first layer
+
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
     im = utils.normalize(
@@ -151,11 +152,13 @@ if __name__ == "__main__":
 
                     mse_loss = ((pixelvalues - gt_noisy[:, b_indices, :])**2).mean()
 
-                    lambda_tv = 1.0
+                    lambda_tv = 0.4
+                    tv_loss = 0.0   
+
                     if tvl:
                         if b_idx % (maxpoints * 10) == 0:  # every 10 batches
                             with torch.no_grad():
-                                full_prediction = model(coords.cuda()).reshape(1, H, W, 3).permute(0, 3, 1, 2)  
+                                full_prediction = model(coords.cuda()).reshape(H, W, -1)
                                 tv_loss = utils.total_variation_loss(full_prediction)
                         else:
                             tv_loss = 0.0
@@ -195,12 +198,12 @@ if __name__ == "__main__":
 
             if utils.psnr(im, best_img) > best_psnr:
                 best_psnr = utils.psnr(im, best_img)
-                if nonlin == "bspline_form":
-                    label = "No Multi-scale"
-                elif nonlin == "bspline_mscale_1":
+                if nonlin == "bspline_mscale_1":
                     label = "MScale-1"
-                else:
+                elif nonlin == "bspline_mscale_2":
                     label = "MScale-2"
+                else:
+                    label = "No Multi-scale"
 
                 mdict[label] = {
                     "Scale": sigma0,
@@ -221,7 +224,7 @@ if __name__ == "__main__":
                 }
 
     folder_name = utils.make_unique(
-        "MScale1_TVL_Scale9_Lr4e-3",
+        "MScale2_LR_Scale",
         "/rds/general/user/atk23/home/wire/multiscale_results/denoise")
     os.makedirs(
         f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",

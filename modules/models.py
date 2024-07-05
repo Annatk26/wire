@@ -8,6 +8,7 @@ from . import wire
 from . import wire2d
 from . import bspline_form
 from . import bspline_cubic
+from . import bspline_mscale_1
 from . import bspline_mscale_2
 
 model_dict = {'gauss': gauss,
@@ -18,11 +19,12 @@ model_dict = {'gauss': gauss,
               'wire2d': wire2d,
               'bspline_form': bspline_form, 
               'bspline_cubic': bspline_cubic,
+              'bspline_mscale_1': bspline_mscale_1, 
               'bspline_mscale_2': bspline_mscale_2}
 
 def get_INR(nonlin, in_features, hidden_features, scaled_hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,
-            hidden_omega_0=30, scale=10, scale_tensor=[], pos_encode=False, multi_scale=False,
+            hidden_omega_0=30, scale=10, scale_tensor=[], pos_encode=False, 
             sidelength=512, fn_samples=None, use_nyquist=True):
     '''
         Function to get a class instance for a given type of
@@ -66,7 +68,6 @@ def get_INR(nonlin, in_features, hidden_features, scaled_hidden_features, hidden
                         scale,
                         scale_tensor,
                         pos_encode,
-                        multi_scale,
                         sidelength,
                         fn_samples,
                         use_nyquist)

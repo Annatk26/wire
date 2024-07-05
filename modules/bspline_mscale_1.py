@@ -103,7 +103,6 @@ class INR(nn.Module):
                  scale=15.0,
                  scale_tensor=[],
                  pos_encode=False,
-                 multiscale=True,
                  sidelength=512,
                  fn_samples=None,
                  use_nyquist=True):

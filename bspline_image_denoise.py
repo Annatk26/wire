@@ -19,17 +19,15 @@ if __name__ == "__main__":
     utils.log(
         "Starting image denoising experiment for Quadratic B-spline non-linearity with multi-scale in the first layer"
     )
-    multiscale_opt = [True, False]
     weight_init = False
-    # utils.log("Weight initialization: He Initialization")
-    # utils.log("Analysis of different c")
+   
     plt.gray()
     nonlin = "bspline_form"  # Various implementations of B-spline
-    utils.log(f"Non-linearity: {nonlin}")
 
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
     niters = 2000  # Number of SGD iterations (2000)
+    best_psnr = 0
     # param_grid = ParameterGrid({'learning_rate': np.linspace(1e-3, 5e-2, 30)}) # sReLU
     # param_grid = ParameterGrid({'learning_rate': np.linspace(1e-3, 5e-2, 7),
     # 'scale': np.linspace(0.01, 0.999, 10)})
@@ -47,20 +45,15 @@ if __name__ == "__main__":
     # sigma0_all = [[1.0, 2.0, 6.0],
     #             [0.3, 0.5, 0.7], [0.5, 1.0, 2.0]]  # Sigma of Gaussian (8.0)
     # sigma0 = 9.5522
-    sigma0 = 9.0  # sigma0 = 0.5
+    sigma0 = 9.552  # sigma0 = 0.5
     scale_tensor = [4.0, 8.0, 12.0, 16.0, 20.0, 24.0]
-    learning_rate = 4e-3  # Learning rate
-    utils.log(f"Learning rate: {learning_rate}")
-    utils.log(f"Sigma0: {sigma0}")
+    learning_rate_all = [2e-2, 8e-3, 4e-3, 1e-3]  # Learning rate
 
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
     hidden_features = 256  # Number of hidden units per layer
     maxpoints = 256 * 256  # Batch size
     scaled_hidden_features = 16  # Number of hidden units in the first layer
-
-    utils.log(f"Scaled Hidden Features: {scaled_hidden_features}")
-    utils.log(f"Scale tensor: {scale_tensor}")
 
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
@@ -86,11 +79,10 @@ if __name__ == "__main__":
     gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
     gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 
-    for multiscale in multiscale_opt:
-        utils.log(f"Multi-scale: {multiscale}")
-        # Set learning rate based on nonlinearity
-        #utils.log(f"Omega0: {omega0}, Sigma0: {sigma}")
-        #utils.log(f"BSpline learning rate: {learning_rate}")
+    for learning_rate in learning_rate_all:
+        utils.log(f'System Information')
+        utils.log(f'Non-linearity: {nonlin}, Learning rate: {learning_rate}, Scale: {sigma0}')
+        
         if nonlin == "posenc":
             nonlin = "relu"
             posencode = True
@@ -98,12 +90,6 @@ if __name__ == "__main__":
                 sidelength = int(max(H, W) / 3)
             else:
                 sidelength = int(max(H, W))
-        # elif nonlin == "bspline_form":
-        #     posencode = True
-        #     if tau < 100:
-        #         sidelength = int(max(H, W) / 3)
-        #     else:
-        #         sidelength = int(max(H, W))
 
         else:
             posencode = False
@@ -120,7 +106,6 @@ if __name__ == "__main__":
                                scale=sigma0,
                                scale_tensor=scale_tensor,
                                pos_encode=posencode,
-                               multi_scale=multiscale,
                                sidelength=sidelength)
 
         model.cuda()
@@ -186,49 +171,52 @@ if __name__ == "__main__":
         if posencode:
             nonlin = "posenc"
 
+        # utils.log(f"Trained scale: {model.net[1].scale_0.item()}")
         utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
-        utils.log(f"Trained scale: {model.net[1].scale_0.item()}")
+        if utils.psnr(im, best_img)>best_psnr:
+            best_psnr = utils.psnr(im, best_img)
+            if nonlin == "bspline_mscale-1":
+                label = "MScale-1"
+            elif nonlin == "bspline_mscale_2":
+                label = "MScale-2"
+            else:
+                label = "No Multi-Scale"
 
-        if multiscale:
-            label = "Multi-scale"
-        else:
-            label = "No Multi-scale"
-
-        mdict[label] = {
-            "scale": model.net[1].scale_0.item(),
-            "Learning rate": learning_rate,
-            "rec": best_img,
-            "gt": im,
-            "im_noisy": im_noisy,
-            "mse_noisy_array": mse_loss_array.detach().cpu().numpy(),
-            "mse_array": mse_array.detach().cpu().numpy(),
-            "time_array": time_array.detach().cpu().numpy(),
-        }
-        metrics[label] = {
-            "Scale": model.net[1].scale_0.item(),
-            "Learning Rate": learning_rate,
-            "Number of parameters": utils.count_parameters(model),
-            "Best PSNR": utils.psnr(im, best_img),
-        }
+            mdict[label] = {
+                "scale": sigma0,
+                "Learning rate": learning_rate,
+                "rec": best_img,
+                "gt": im,
+                "im_noisy": im_noisy,
+                "mse_noisy_array": mse_loss_array.detach().cpu().numpy(),
+                "mse_array": mse_array.detach().cpu().numpy(),
+                "time_array": time_array.detach().cpu().numpy(),
+            }
+            metrics[label] = {
+                "Scale": sigma0,
+                "Learning Rate": learning_rate,
+                "Number of parameters": utils.count_parameters(model),
+                "Best PSNR": utils.psnr(im, best_img),
+            }
 
         # best_psnr.append(utils.psnr(im, best_img))
         #utils.log(f"Number of parameters: {utils.count_parameters(model)}, Best PSNR: {utils.psnr(im, best_img)}")
 
     folder_name = utils.make_unique(
-        "form_mscale",
-        "/rds/general/user/atk23/home/wire/bspline_cubic_results/denoise")
+        "No_MScale",
+        "/rds/general/user/atk23/home/wire/multiscale_results/denoise")
     os.makedirs(
-        f"/rds/general/user/atk23/home/wire/bspline_results/denoise/{folder_name}",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
         exist_ok=True)
     io.savemat(
-        f"/rds/general/user/atk23/home/wire/bspline_results/denoise/{folder_name}/info.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat",
         mdict)
     io.savemat(
-        f"/rds/general/user/atk23/home/wire/bspline_results/denoise/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
         metrics)
     utils.tabulate_results(
-        f"/rds/general/user/atk23/home/wire/bspline_results/denoise/{folder_name}/metrics.mat",
-        f"/rds/general/user/atk23/home/wire/bspline_results/denoise/{folder_name}"
+        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}"
     )
     utils.log("Image denoise experiment completed")
 

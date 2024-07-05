@@ -3,7 +3,6 @@ from torch import nn
 from torch.nn import functional as F
 import numpy as np
 
-
 class Bsplines_form(nn.Module):
 
     def __init__(
@@ -50,44 +49,6 @@ class Bsplines_form(nn.Module):
             + 1.5 * self.quadratic_relu(lin - 0.5)
             - 0.5 * self.quadratic_relu(lin - 1.5)
         )
-    
-class Scaled_Bsplines_form(nn.Module):
-
-    def __init__(
-            self,
-            in_features,
-            out_features,
-            bias=True,
-            is_first=False,
-            omega0=-0.2,  
-            sigma0=[],  
-            init_weights=False,
-            trainable=False):
-        super().__init__()
-        self.omega_0 = omega0
-        self.scale_0 = sigma0
-        self.is_first = is_first
-
-        self.in_features = in_features
-        self.out_features = out_features
-
-        self.scale_0 = nn.Parameter(torch.tensor(self.scale_0, dtype=torch.float), trainable)
-        self.linear = nn.Linear(in_features, out_features, bias=bias)
-        # self.linear.weight.data = self.scale_0 * self.linear.weight.data
-
-    def quadratic_relu(self, x):
-        return torch.nn.ReLU()(x)**2
-
-    def forward(self, input):
-        # lin = self.scale_0*self.linear(input)
-        lin = torch.cat([self.linear(scale*input) for scale in self.scale_0], dim=2)
-        # print(lin.shape)
-        return (
-            0.5 * self.quadratic_relu(lin + 1.5)
-            - 1.5 * self.quadratic_relu(lin + 0.5)
-            + 1.5 * self.quadratic_relu(lin - 0.5)
-            - 0.5 * self.quadratic_relu(lin - 1.5)
-        )
 
 class INR(nn.Module):
 
@@ -103,7 +64,6 @@ class INR(nn.Module):
                  scale=15.0,
                  scale_tensor=[],
                  pos_encode=False,
-                 multiscale=True,
                  sidelength=512,
                  fn_samples=None,
                  use_nyquist=True):
@@ -117,30 +77,13 @@ class INR(nn.Module):
         self.pos_encode = False
 
         self.nonlin = Bsplines_form
-        if multiscale:
-            self.nonlin_scale = Scaled_Bsplines_form
-            hidden_layers = hidden_layers - 1
-            self.net.append(
-            self.nonlin_scale(in_features,
-                        scaled_hidden_features,
-                        omega0=first_omega_0,
-                        sigma0=scale_tensor,
-                        is_first=True,
-                        trainable=False))
-            self.net.append(
-            self.nonlin(scaled_hidden_features*len(scale_tensor),
-                        hidden_features,
-                        omega0=hidden_omega_0,
-                        sigma0=scale,
-                        trainable=False))
-        else:
-            self.net.append(
-            self.nonlin(in_features,
-                        hidden_features,
-                        omega0=first_omega_0,
-                        sigma0=scale,
-                        is_first=True,
-                        trainable=False))
+        self.net.append(
+        self.nonlin(in_features,
+                    hidden_features,
+                    omega0=first_omega_0,
+                    sigma0=scale,
+                    is_first=True,
+                    trainable=False))
 
         
 
@@ -148,15 +91,6 @@ class INR(nn.Module):
         # hidden parameters by 2
         #hidden_features = int(hidden_features / np.sqrt(2))
         #dtype = torch.cfloat
-        
-
-        # self.net.append(
-        #     self.nonlin(in_features,
-        #                 hidden_features,
-        #                 omega0=first_omega_0,
-        #                 sigma0=scale,
-        #                 is_first=True,
-        #                 trainable=True))
 
         for i in range(hidden_layers):
             self.net.append(
@@ -184,8 +118,4 @@ class INR(nn.Module):
 
     def forward(self, coords):
         output = self.net(coords)
-
-        #if self.wavelet == 'gabor':
-        #   return output.real
-
         return output

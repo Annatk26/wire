@@ -282,34 +282,34 @@ def log(message):
 
 
 def tabulate_results(mat_file, path):
-    # Load the .mat file
-    mat = scipy.io.loadmat(mat_file)
+        # Load the .mat file
+    mat = io.loadmat(mat_file)
 
     # Create a dictionary of the variables in the .mat file
     variables = {}
     for key in mat.keys():
         if not key.startswith('__'):
             variables[key] = mat[key]
+    
     nonlin_all = list(variables.keys())
     data = {}
     first_nonlin = nonlin_all[0]
+    
     for key in mat[first_nonlin][0, 0].dtype.names:
         data[key] = []
 
     for types in nonlin_all:
         values = mat[types][0, 0]
         for key in values.dtype.names:
-            data[key].append(values[key][0, 0])
+            if isinstance(values[key][0], (list, np.ndarray)):
+                data[key].append(values[key][0].tolist())
+            else:
+                data[key].append(values[key][0, 0])
 
-    # Create a DataFrame from the dictionary where the keys are the columns and the first two values are the rows
+    # Create a DataFrame from the dictionary where the keys are the columns and the nonlin types are the rows
     df = pd.DataFrame(data, index=nonlin_all)
 
-    # Create a table of the variables and their values
-    # print(df)
-    # pd.set_option('display.max_columns', None)  # Show all columns
-    # pd.set_option('display.width', None)  # Automatically adjust the display width
-    # pd.set_option('display.max_colwidth', None)  # No limit on column width
-    # pd.set_option('display.max_rows', None)  # Show all rows
+    # Save the DataFrame to a markdown file
     df.to_markdown(os.path.join(path, "metrics_table.md"), floatfmt=".3f")
 
 def make_unique(folder_name, folder_path):
@@ -334,3 +334,14 @@ def make_unique(folder_name, folder_path):
         folder_path = os.path.join(folder_path, new_folder_name)
 
     return new_folder_name
+
+def total_variation_loss(image):
+    # Calculate differences in x direction
+    diff_x = image[:, :, 1:, :] - image[:, :, :-1, :]
+    # Calculate differences in y direction
+    diff_y = image[:, :, :, 1:] - image[:, :, :, :-1]
+    
+    # Sum of absolute differences
+    tv_loss = torch.sum(torch.abs(diff_x)) + torch.sum(torch.abs(diff_y))
+    
+    return tv_loss
