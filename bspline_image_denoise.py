@@ -2,230 +2,222 @@ from modules import setup
 
 setup.seed_everything()
 
+import argparse
 import os
 import time
 
 import cv2
-# from sklearn.model_selection import ParameterGrid
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn
-from modules import models, utils
 from scipy import io
 from torch.optim.lr_scheduler import LambdaLR
 
-if __name__ == "__main__":
-    utils.log(
-        "Starting image denoising experiment for Quadratic B-spline non-linearity with multi-scale in the first layer"
-    )
-    weight_init = False
-   
-    plt.gray()
-    nonlin = "bspline_form"  # Various implementations of B-spline
+from configs import CONFIGS
+from modules import models, utils
 
-    mdict = {}  # Dictionary to store info of each non-linearity
-    metrics = {}  # Dictionary to store metrics of each non-linearity
-    niters = 2000  # Number of SGD iterations (2000)
-    best_psnr = 0
-    # param_grid = ParameterGrid({'learning_rate': np.linspace(1e-3, 5e-2, 30)}) # sReLU
-    # param_grid = ParameterGrid({'learning_rate': np.linspace(1e-3, 5e-2, 7),
-    # 'scale': np.linspace(0.01, 0.999, 10)})
+parser = argparse.ArgumentParser()
+parser.add_argument("--config_name", type=str, required=True)
+args = parser.parse_args()
 
-    # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
-    # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3
+curr_config = CONFIGS[args.config_name]
 
-    tau = 3e1  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
-    noise_snr = 2  # Readout noise (dB)
+utils.log("Starting image denoising experiment")
+plt.gray()
 
-    # Gabor filter constants.
-    # We suggest omega0 = 4 and sigma0 = 4 for denoising, and omega0=20, sigma0=30 for image representation
-    #omega0 = 5.0  # Frequency of sinusoid
-    omega0 = 0.07
-    # sigma0_all = [[1.0, 2.0, 6.0],
-    #             [0.3, 0.5, 0.7], [0.5, 1.0, 2.0]]  # Sigma of Gaussian (8.0)
-    # sigma0 = 9.5522
-    sigma0 = 9.552  # sigma0 = 0.5
-    scale_tensor = [4.0, 8.0, 12.0, 16.0, 20.0, 24.0]
-    learning_rate_all = [2e-2, 8e-3, 4e-3, 1e-3]  # Learning rate
+tvl = curr_config['tvl']  # Total variation loss
+weight_init = False
 
-    # Network parameters
-    hidden_layers = 2  # Number of hidden layers in the MLP
-    hidden_features = 256  # Number of hidden units per layer
-    maxpoints = 256 * 256  # Batch size
-    scaled_hidden_features = 16  # Number of hidden units in the first layer
+mdict = {}  # Dictionary to store info of each non-linearity
+metrics = {}  # Dictionary to store metrics of each non-linearity
+best_psnr = 0
 
-    # Read image and scale. A scale of 0.5 for parrot image ensures that it
-    # fits in a 12GB GPU
-    im = utils.normalize(
-        plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(
-            np.float32),
-        True,
-    )
-    im = cv2.resize(im, None, fx=1 / 2, fy=1 / 2, interpolation=cv2.INTER_AREA)
-    H, W, _ = im.shape
+tau = curr_config["tau"]  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
+noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
 
-    # Create a noisy image
-    im_noisy = utils.measure(im, noise_snr, tau)
+# Activation function constants
+omega0 = 0.0
+nonlin = curr_config["nonlin"]
+sigma0 = curr_config["scale"]
+scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
 
-    x = torch.linspace(-1, 1, W)
-    y = torch.linspace(-1, 1, H)
+# Network parameters
+hidden_layers = 2  # Number of hidden layers in the MLP
+hidden_features = curr_config["hidden_features"]  # Number of hidden units per layer
+maxpoints = curr_config["maxpoints"]  # Batch size
+niters = curr_config["niters"]  # Number of SGD iterations (2000)
+scaled_hidden_features = curr_config[
+    "scaled_hidden_features"
+]  # Number of hidden units in the first layer
+learning_rate = curr_config["learning_rate"]
+if nonlin == "bspline_mscale_1_new":
+    in_features = 2 * len(scale_tensor) * scaled_hidden_features
+else:
+    in_features = 2
 
-    # x = torch.linspace(-0.5, 1.5, W)
-    # y = torch.linspace(-0.5, 1.5, H)
-    X, Y = torch.meshgrid(x, y, indexing="xy")
-    coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
+# Read image and scale. A scale of 0.5 for parrot image ensures that it
+# fits in a 12GB GPU
+im = utils.normalize(
+    plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(np.float32),
+    True,
+)
+im = cv2.resize(im, None, fx=1 / 2, fy=1 / 2, interpolation=cv2.INTER_AREA)
+H, W, _ = im.shape
 
-    gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
-    gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
+# Create a noisy image
+im_noisy = utils.measure(im, noise_snr, tau)
 
-    for learning_rate in learning_rate_all:
-        utils.log(f'System Information')
-        utils.log(f'Non-linearity: {nonlin}, Learning rate: {learning_rate}, Scale: {sigma0}')
-        
-        if nonlin == "posenc":
-            nonlin = "relu"
-            posencode = True
-            if tau < 100:
-                sidelength = int(max(H, W) / 3)
-            else:
-                sidelength = int(max(H, W))
+x = torch.linspace(-1, 1, W)
+y = torch.linspace(-1, 1, H)
 
-        else:
-            posencode = False
-            sidelength = H
+X, Y = torch.meshgrid(x, y, indexing="xy")
+coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
 
-        model = models.get_INR(nonlin=nonlin,
-                               in_features=2,
-                               out_features=3,
-                               hidden_features=hidden_features,
-                               scaled_hidden_features=scaled_hidden_features,
-                               hidden_layers=hidden_layers,
-                               first_omega_0=omega0,
-                               hidden_omega_0=omega0,
-                               scale=sigma0,
-                               scale_tensor=scale_tensor,
-                               pos_encode=posencode,
-                               sidelength=sidelength)
+gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
+gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 
-        model.cuda()
+utils.log("System Information")
+utils.log(f"Non-linearity: {nonlin}, Learning Rate: {learning_rate}, Scale: {sigma0}")
+utils.log(
+    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}"
+)
 
-        # Create an optimizer
-        optim = torch.optim.Adam(lr=learning_rate *
-                                 min(1, maxpoints / (H * W)),
-                                 params=model.parameters())
+if nonlin == "posenc":
+    nonlin = "relu"
+    posencode = True
+    if tau < 100:
+        sidelength = int(max(H, W) / 3)
+    else:
+        sidelength = int(max(H, W))
+else:
+    posencode = False
+    sidelength = H
 
-        # Schedule to reduce lr to 0.1 times the initial rate in final epoch
-        scheduler = LambdaLR(optim, lambda x: 0.1**min(x / niters, 1))
+model = models.get_INR(
+    nonlin=nonlin,
+    in_features=in_features,
+    out_features=3,
+    hidden_features=hidden_features,
+    scaled_hidden_features=scaled_hidden_features,
+    hidden_layers=hidden_layers,
+    first_omega_0=omega0,
+    hidden_omega_0=omega0,
+    scale=sigma0,
+    scale_tensor=scale_tensor,
+    pos_encode=posencode,
+    sidelength=sidelength,
+)
 
-        mse_array = torch.zeros(niters, device="cuda")
-        mse_loss_array = torch.zeros(niters, device="cuda")
-        time_array = torch.zeros_like(mse_array)
+model.cuda()
 
-        best_mse = torch.tensor(float("inf"))
-        best_img = None
+# Create an optimizer
+optim = torch.optim.Adam(
+    lr=learning_rate * min(1, maxpoints / (H * W)), params=model.parameters()
+)
 
-        rec = torch.zeros_like(gt)
+# Schedule to reduce lr to 0.1 times the initial rate in final epoch
+scheduler = LambdaLR(optim, lambda x: 0.1 ** min(x / niters, 1))
 
-        tbar = range(niters)
-        init_time = time.time()
-        for epoch in tbar:
-            indices = torch.randperm(H * W)
+mse_array = torch.zeros(niters, device="cuda")
+mse_loss_array = torch.zeros(niters, device="cuda")
+time_array = torch.zeros_like(mse_array)
+best_mse = torch.tensor(float("inf"))
+best_img = None
+rec = torch.zeros_like(gt)
 
-            for b_idx in range(0, H * W, maxpoints):
-                b_indices = indices[b_idx:min(H * W, b_idx + maxpoints)]
-                b_coords = coords[:, b_indices, ...].cuda()
-                b_indices = b_indices.cuda()
-                pixelvalues = model(b_coords)
+tbar = range(niters)
+init_time = time.time()
+for epoch in tbar:
+    indices = torch.randperm(H * W)
 
+    for b_idx in range(0, H * W, maxpoints):
+        b_indices = indices[b_idx : min(H * W, b_idx + maxpoints)]
+        b_coords = coords[:, b_indices, ...].cuda()
+        b_indices = b_indices.cuda()
+        pixelvalues = model(b_coords)
+
+        with torch.no_grad():
+            rec[:, b_indices, :] = pixelvalues
+
+        mse_loss = ((pixelvalues - gt_noisy[:, b_indices, :]) ** 2).mean()
+
+        lambda_tv = curr_config["lambda_tv"]
+        tv_loss = 0.0
+        if tvl:
+            if b_idx % (maxpoints * 10) == 0:  # every 10 batches
                 with torch.no_grad():
-                    rec[:, b_indices, :] = pixelvalues
-
-                loss = ((pixelvalues - gt_noisy[:, b_indices, :])**2).mean()
-
-                optim.zero_grad()
-                loss.backward()
-                optim.step()
-
-            time_array[epoch] = time.time() - init_time
-
-            with torch.no_grad():
-                mse_loss_array[epoch] = ((gt_noisy - rec)**2).mean().item()
-                mse_array[epoch] = ((gt - rec)**2).mean().item()
-                im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
-                im_rec = rec.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
-
-                psnrval = -10 * torch.log10(mse_array[epoch])
-
-            scheduler.step()
-
-            imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
-
-            # cv2.imshow('Reconstruction', imrec[..., ::-1])
-            # cv2.waitKey(1)
-
-            if (mse_array[epoch] < best_mse) or (epoch == 0):
-                best_mse = mse_array[epoch]
-                best_img = imrec
-
-        if posencode:
-            nonlin = "posenc"
-
-        # utils.log(f"Trained scale: {model.net[1].scale_0.item()}")
-        utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
-        if utils.psnr(im, best_img)>best_psnr:
-            best_psnr = utils.psnr(im, best_img)
-            if nonlin == "bspline_mscale-1":
-                label = "MScale-1"
-            elif nonlin == "bspline_mscale_2":
-                label = "MScale-2"
+                    full_prediction = (
+                        model(coords.cuda()).reshape(1, H, W, 3).permute(0, 3, 1, 2)
+                    )
+                    tv_loss = utils.total_variation_loss(full_prediction)
             else:
-                label = "No Multi-Scale"
+                tv_loss = 0.0
 
-            mdict[label] = {
-                "scale": sigma0,
-                "Learning rate": learning_rate,
-                "rec": best_img,
-                "gt": im,
-                "im_noisy": im_noisy,
-                "mse_noisy_array": mse_loss_array.detach().cpu().numpy(),
-                "mse_array": mse_array.detach().cpu().numpy(),
-                "time_array": time_array.detach().cpu().numpy(),
-            }
-            metrics[label] = {
-                "Scale": sigma0,
-                "Learning Rate": learning_rate,
-                "Number of parameters": utils.count_parameters(model),
-                "Best PSNR": utils.psnr(im, best_img),
-            }
+        loss = mse_loss + lambda_tv * tv_loss
 
-        # best_psnr.append(utils.psnr(im, best_img))
-        #utils.log(f"Number of parameters: {utils.count_parameters(model)}, Best PSNR: {utils.psnr(im, best_img)}")
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
 
-    folder_name = utils.make_unique(
-        "No_MScale",
-        "/rds/general/user/atk23/home/wire/multiscale_results/denoise")
-    os.makedirs(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
-        exist_ok=True)
-    io.savemat(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat",
-        mdict)
-    io.savemat(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
-        metrics)
-    utils.tabulate_results(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
-        f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}"
-    )
-    utils.log("Image denoise experiment completed")
+    time_array[epoch] = time.time() - init_time
 
-# utils.tabulate_results(f"/home/atk23/wire/bspline_results/{folder_name}/metrics.mat")
-# plt.plot(param['learning_rate'], best_psnr, label="Best PSNR")
-# plt.xlabel("Learning rate")
-# plt.ylabel("PSNR")
-# plt.title("PSNR vs Learning rate")
-# plt.legend()
-# plt.savefig(
-#     f"/rds/general/user/atk23/home/wire/bspline_results/{folder_name}/best_psnr.png"
-# )
+    with torch.no_grad():
+        mse_loss_array[epoch] = ((gt_noisy - rec) ** 2).mean().item()
+        mse_array[epoch] = ((gt - rec) ** 2).mean().item()
+        im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
+        im_rec = rec.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
+
+        psnrval = -10 * torch.log10(mse_array[epoch])
+
+    scheduler.step()
+    imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
+
+    if (mse_array[epoch] < best_mse) or (epoch == 0):
+        best_mse = mse_array[epoch]
+        best_img = imrec
+
+if posencode:
+    nonlin = "posenc"
+
+utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
+
+folder_name = utils.make_unique(
+    f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/denoise"
+)
+mdict[folder_name] = {
+    "Scale": sigma0,
+    "Learning rate": learning_rate,
+    "rec": best_img,
+    "gt": im,
+    "im_noisy": im_noisy,
+    "mse_noisy_array": mse_loss_array.detach().cpu().numpy(),
+    "mse_array": mse_array.detach().cpu().numpy(),
+    "time_array": time_array.detach().cpu().numpy(),
+}
+metrics[folder_name] = {
+    "Scale": sigma0,
+    "Scale tensor": curr_config["scale_tensor"],
+    "Learning Rate": learning_rate,
+    "Number of parameters": utils.count_parameters(model),
+    "Best PSNR": utils.psnr(im, best_img),
+}
+
+os.makedirs(
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
+    exist_ok=True)
+
+io.savemat(
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat",
+    mdict)
+io.savemat(
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
+    metrics)
+utils.tabulate_results(
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
+)
+utils.display_image(
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat"
+)
+utils.log("Image denoise experiment completed")
