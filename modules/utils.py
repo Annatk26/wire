@@ -9,18 +9,13 @@ import os
 import re
 # Plotting
 import cv2
-import matplotlib.pyplot as plt
 # Scientific computing
 import numpy as np
-import scipy as sp
 import scipy.linalg as lin
-import scipy.ndimage as ndim
 import torch
-from matplotlib.lines import Line2D
-from scipy import io, signal
-from scipy.sparse.linalg import svds
 import pandas as pd
-import scipy.io
+import scipy.io as io
+import matplotlib.pyplot as plt
 
 
 def normalize(x, fullnormalize=False):
@@ -311,6 +306,17 @@ def tabulate_results(mat_file, path):
 
     # Save the DataFrame to a markdown file
     df.to_markdown(os.path.join(path, "metrics_table.md"), floatfmt=".3f")
+
+def display_image(image_path):
+    mat = io.loadmat(image_path)
+    for key in mat.keys():
+        if not key.startswith("__"):
+            img = mat[key][0, 0]
+            image = img['rec']
+            save_path = os.path.join(os.path.dirname(image_path), "Output_img.png") 
+            plt.imsave(save_path, np.clip(abs(image), 0, 1), 
+                vmin=0.0,
+                vmax=1.0)
 
 def make_unique(folder_name, folder_path):
     # Regular expression to detect if the folder name ends with _digit

@@ -1,7 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
-import numpy as np
 
 
 class Bsplines_form(nn.Module):
@@ -81,13 +79,13 @@ class Scaled_Bsplines_form(nn.Module):
     def forward(self, input):
         # lin = self.scale_0*self.linear(input)
         lin = torch.cat([self.linear(scale*input) for scale in self.scale_0], dim=2)
-        # print(lin.shape)
-        return (
-            0.5 * self.quadratic_relu(lin + 1.5)
-            - 1.5 * self.quadratic_relu(lin + 0.5)
-            + 1.5 * self.quadratic_relu(lin - 0.5)
-            - 0.5 * self.quadratic_relu(lin - 1.5)
-        )
+        return (lin)
+        # return (
+        #     0.5 * self.quadratic_relu(lin + 1.5)
+        #     - 1.5 * self.quadratic_relu(lin + 0.5)
+        #     + 1.5 * self.quadratic_relu(lin - 0.5)
+        #     - 0.5 * self.quadratic_relu(lin - 1.5)
+        # )
 
 class INR(nn.Module):
 

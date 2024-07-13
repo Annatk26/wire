@@ -10,6 +10,9 @@ from . import bspline_form
 from . import bspline_cubic
 from . import bspline_mscale_1
 from . import bspline_mscale_2
+from . import bspline_mscale_repIN
+from . import bspline_mscale_attention
+from . import bspline_mscale_HL
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
@@ -20,7 +23,10 @@ model_dict = {'gauss': gauss,
               'bspline_form': bspline_form, 
               'bspline_cubic': bspline_cubic,
               'bspline_mscale_1': bspline_mscale_1, 
-              'bspline_mscale_2': bspline_mscale_2}
+              'bspline_mscale_2': bspline_mscale_2, 
+              'mscale_1_attention': bspline_mscale_attention,
+              'bspline_mscale_1_new': bspline_mscale_repIN,
+              'bspline_mscale_HL': bspline_mscale_HL}
 
 def get_INR(nonlin, in_features, hidden_features, scaled_hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,
