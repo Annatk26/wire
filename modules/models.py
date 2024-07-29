@@ -8,11 +8,9 @@ from . import wire
 from . import wire2d
 from . import bspline_form
 from . import bspline_cubic
-from . import bspline_mscale_1
 from . import bspline_mscale_2
-from . import bspline_mscale_repIN
-from . import bspline_mscale_attention
 from . import bspline_mscale_HL
+from . import bspline_mscale_hier
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
@@ -22,11 +20,9 @@ model_dict = {'gauss': gauss,
               'wire2d': wire2d,
               'bspline_form': bspline_form, 
               'bspline_cubic': bspline_cubic,
-              'bspline_mscale_1': bspline_mscale_1, 
               'bspline_mscale_2': bspline_mscale_2, 
-              'mscale_1_attention': bspline_mscale_attention,
-              'bspline_mscale_1_new': bspline_mscale_repIN,
-              'bspline_mscale_HL': bspline_mscale_HL}
+              'bspline_mscale_HL': bspline_mscale_HL,
+              'bspline_hier': bspline_mscale_hier}
 
 def get_INR(nonlin, in_features, hidden_features, scaled_hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,

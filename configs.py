@@ -329,6 +329,21 @@ CONFIGS = {
     },
 
     ################### CT ###################
+    "MscaleHL_s1o9_ST4_SHF384_LR8e3_E4000":{
+        "name": "MscaleHL_s1o9_ST4_SHF384_LR8e3_E4000",
+        "nonlin": "bspline_mscale_HL",
+        "scale": (1/9),
+        "scale_tensor": [(1/9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256*256,
+    },
 
     ############# Different downsampling #############
     "MscaleHL_s1o9_Ds6_ST4_SHF384_LR1e3_E2000":{
@@ -403,6 +418,23 @@ CONFIGS = {
         "name": "MscaleHL_s1o9_Ds8_ST4_SHF384_LR1e3_E2000 ",
         "nonlin": "bspline_mscale_HL",
         "down_scale": 8,
+        "scale": (1/9),
+        "scale_tensor": [(1/9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 2000,
+        "maxpoints": 256*256,
+    },
+
+    "MscaleHL_s1o9_Ds16_ST4_SHF384_LR1e3_E2000":{
+        "name": "MscaleHL_s1o9_Ds16_ST4_SHF384_LR1e3_E2000 ",
+        "nonlin": "bspline_mscale_HL",
+        "down_scale": 16,
         "scale": (1/9),
         "scale_tensor": [(1/9), 4],
         "hidden_features": 256,
@@ -601,6 +633,23 @@ CONFIGS = {
         "maxpoints": 256*256,
     },
 
+    "Mscale2_ST6_Ds16_LR8e3_E4000":{
+        "name": "Mscale2_ST6_Ds16_LR8e3_E4000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 16,
+        "scale": 0.0,
+        "scale_tensor": [(1/9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256*256,
+    },
+
     ############# Increased noise #############
     "Mscale2_ST4_3_LR8e3_E4000_snr1_tau0.2e1":{
         "name": "Mscale2_ST4_3_LR8e3_E4000_snr1_tau0.2e1",
@@ -617,6 +666,25 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256*256,
     },
+
+    ############# Hierarchical Mscale #############
+    "MscaleHier_ST4_LR8e3_E4000":{
+        "name": "MscaleHier_ST4_LR8e3_E4000",
+        "nonlin": "bspline_mscale_hier",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1/9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256*256,
+    },
+
 
     ########### Quadratic B-spline ###########
     "Bspline_s9_5_LR8e3_E4000":{
@@ -727,6 +795,23 @@ CONFIGS = {
         "name": "Bspline_s9_Ds8_LR1e3_E2000",
         "nonlin": "bspline_form",
         "down_scale": 8,
+        "scale": 1/9.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 2000,
+        "maxpoints": 256*256,
+    },
+
+    "Bspline_s9_Ds16_LR1e3_E2000":{
+        "name": "Bspline_s9_Ds16_LR1e3_E2000",
+        "nonlin": "bspline_form",
+        "down_scale": 16,
         "scale": 1/9.0,
         "scale_tensor": [0.0],
         "hidden_features": 256,
@@ -866,6 +951,24 @@ CONFIGS = {
         "name": "WIRE_s9_Ds8_o8_LR5e3_E2000",
         "nonlin": "wire",
         "down_scale": 8,
+        "scale": 9.0,
+        "omega0": 8.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 5e-3,
+        "niters": 2000,
+        "maxpoints": 256*256,
+    },
+
+    "WIRE_s9_Ds16_o8_LR5e3_E2000":{
+        "name": "WIRE_s9_Ds16_o8_LR5e3_E2000",
+        "nonlin": "wire",
+        "down_scale": 16,
         "scale": 9.0,
         "omega0": 8.0,
         "scale_tensor": [0.0],
