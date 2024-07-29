@@ -3,8 +3,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-tau = 1e1  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
-noise_snr = 1  # Readout noise (dB)
+tau = 3e1  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
+noise_snr = 5  # Readout noise (dB)
 
 im = utils.normalize(
     plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(np.float32),

@@ -111,6 +111,22 @@ def measure(x, noise_snr=40, tau=100):
 
     return x_meas
 
+def add_salt_and_pepper_noise(image, salt_prob, pepper_prob):
+    # Get the dimensions of the image
+    rows, cols, _ = image.shape
+    
+    # Create a copy of the image
+    noisy_image = np.copy(image)
+    
+    # Add salt noise
+    salt_mask = np.random.random(image.shape[:2]) < salt_prob
+    noisy_image[salt_mask] = 255
+    
+    # Add pepper noise
+    pepper_mask = np.random.random(image.shape[:2]) < pepper_prob
+    noisy_image[pepper_mask] = 0
+    
+    return noisy_image
 
 def build_montage(images):
     '''

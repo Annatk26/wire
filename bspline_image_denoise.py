@@ -37,7 +37,7 @@ tau = curr_config["tau"]  # Photon noise (max. mean lambda). Set to 3e7 for repr
 noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
 
 # Activation function constants
-omega0 = 0.0
+omega0 = 7.0
 nonlin = curr_config["nonlin"]
 sigma0 = curr_config["scale"]
 scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
@@ -183,7 +183,7 @@ if posencode:
 utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
 
 folder_name = utils.make_unique(
-    f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/denoise"
+    f"{curr_config['name']}", f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/T{tau}_SNR{noise_snr}"
 )
 mdict[folder_name] = {
     "Scale": sigma0,
@@ -198,26 +198,18 @@ mdict[folder_name] = {
 metrics[folder_name] = {
     "Scale": sigma0,
     "Scale tensor": curr_config["scale_tensor"],
+    "Tau": tau,
+    "Noise SNR": noise_snr,
     "Learning Rate": learning_rate,
     "Number of parameters": utils.count_parameters(model),
     "Best PSNR": utils.psnr(im, best_img),
 }
 
-os.makedirs(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
-    exist_ok=True)
+filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/T{tau}_SNR{noise_snr}/{folder_name}"
+os.makedirs(filepath, exist_ok=True)
+io.savemat(os.path.join(filepath, "info.mat"), mdict)
+io.savemat(os.path.join(filepath, "metrics.mat"), metrics)
+utils.tabulate_results(os.path.join(filepath, "metrics.mat"), filepath)
+utils.display_image(os.path.join(filepath, "info.mat"))
 
-io.savemat(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat",
-    mdict)
-io.savemat(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
-    metrics)
-utils.tabulate_results(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
-)
-utils.display_image(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat"
-)
 utils.log("Image denoise experiment completed")

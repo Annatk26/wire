@@ -1,8 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
-import numpy as np
-
 class Bsplines_form(nn.Module):
 
     def __init__(
@@ -42,7 +39,8 @@ class Bsplines_form(nn.Module):
         return torch.nn.ReLU()(x)**2
 
     def forward(self, input):
-        lin = self.linear(self.scale_0*input)
+        lin = self.linear(input)
+        lin = lin/self.scale_0
         return (
             0.5 * self.quadratic_relu(lin + 1.5)
             - 1.5 * self.quadratic_relu(lin + 0.5)

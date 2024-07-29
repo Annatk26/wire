@@ -67,8 +67,7 @@ class Scaled_Bsplines_form(nn.Module):
         self.out_features = out_features
 
         self.scale_0 = nn.Parameter(
-            torch.tensor(self.scale_0, dtype=torch.float), trainable
-        )
+            self.scale_0.clone().detach(), trainable)
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
     def quadratic_relu(self, x):
@@ -86,13 +85,14 @@ class Scaled_Bsplines_form(nn.Module):
     def forward(self, input):
         lin = self.linear(input)
         # Slice the output into parts
-        split_size = lin.size(2) // len(self.scale_0)
-        split_tensors = [lin[..., i*split_size:(i+1)*split_size] for i in range(len(self.scale_0))]
-        slice = torch.stack((split_tensors), dim=0)
+        split_size = (lin.size(2)-256) // (len(self.scale_0)-1)
+        split_tensor_1 = lin[..., :256].clone().detach()
+        split_tensor_2 = [lin[..., 256+i*split_size:256+(i+1)*split_size].clone().detach() for i in range(len(self.scale_0)-1)]
         # Apply different activations
         out_tensor = []
-        for i in range(len(self.scale_0)):
-            out_tensor.append(self.quadratic_bspline(slice[i, :, :, :], self.scale_0[i]))
+        out_tensor.append(self.quadratic_bspline(split_tensor_1, self.scale_0[0]))
+        for i in range(len(self.scale_0)-1):
+            out_tensor.append(self.quadratic_bspline(split_tensor_2[i], self.scale_0[i+1]))
         output = torch.cat(out_tensor, dim=2)
         return output 
 

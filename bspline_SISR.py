@@ -21,7 +21,7 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from modules import models
 from modules import utils
-from config import CONFIGS
+from configs import CONFIGS
 
 models = importlib.reload(models)
 
@@ -35,21 +35,18 @@ if __name__ == '__main__':
     utils.log('Starting SISR experiment')
     
     weight_init = False
-    tvl = False  # Total variation loss
+    tvl = curr_config["tvl"]  # Total variation loss
     
     # Results
     mdict = {}  
     metrics = {}  
-    best_val = 0
 
-   
-   
     # Image pre-processing 
-    scale = 4  # Downsampling factor
+    scale = curr_config["down_scale"]  # Downsampling factor
     scale_im = 1 / 3  # Initial image downsample 
 
     # Activation constants
-    omega0 = 0.0  
+    omega0 = 8.0  
     sigma0 = curr_config["scale"]  
     scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
     learning_rate = curr_config["learning_rate"]
@@ -78,6 +75,7 @@ if __name__ == '__main__':
                     interpolation=cv2.INTER_AREA)
     H, W, _ = im.shape
 
+    # Ensures image dimensions are multiples of scale
     im = im[:scale * (H // scale), :scale * (W // scale), :]
     H, W, _ = im.shape
 
@@ -88,9 +86,10 @@ if __name__ == '__main__':
                        interpolation=cv2.INTER_AREA)
     H2, W2, _ = im_lr.shape
 
+    # Low-resolution image
     x = torch.linspace(-1, 1, W2).cuda()
     y = torch.linspace(-1, 1, H2).cuda()
-
+    # High-resolution image
     x_hr = torch.linspace(-1, 1, W).cuda()
     y_hr = torch.linspace(-1, 1, H).cuda()
 
@@ -190,54 +189,37 @@ if __name__ == '__main__':
     utils.log(f'Best MSE: {-10 * torch.log10(best_mse).item()}')
     utils.log(f'Best SSIM: {ssim_func(im, best_img, multichannel=True)}')
 
-    if -10 * torch.log10(best_mse).item() > best_val:
-        best_val = -10 * torch.log10(best_mse).item()
-        if nonlin == 'bspline_mscale_1':
-            label = 'MScale-1'
-        elif nonlin == 'bspline_mscale_2':
-            label = 'MScale-2'
-        else:
-            label = 'No Multi-Scale'
-
-        mdict[label] = {
-            'Scale': sigma0,
-            'rec': best_img,
-            'gt': im,
-            'rec_bi': im_bi,
-            'mse_array': mse_array.detach().cpu().numpy(),
-            'ssim_array': mse_array.detach().cpu().numpy(),
-        }
-
-        metrics[label] = {
-            'Scale': sigma0,
-            'Learning rate': learning_rate,
-            'Best MSE': -10 * torch.log10(best_mse).item(),
-            'Best SSIM': ssim_func(im, best_img, multichannel=True)
-        }
-
-        plot = im - best_img
-    
     folder_name = utils.make_unique(
         f"{curr_config['name']}",
-        "/rds/general/user/atk23/home/wire/multiscale_results/sisr")
-    os.makedirs(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/{folder_name}",
-        exist_ok=True)
-    
-    plt.imsave(
-    f'/rds/general/user/atk23/home/wire/multiscale_results/sisr/{folder_name}/MSE_plot.png',
-    np.clip(abs(plot), 0, 1),
-    vmin=0.0,
-    vmax=0.1)
+        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/DS_{scale}")
 
-    io.savemat(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/{folder_name}/info.mat",
-        mdict)
-    io.savemat(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/{folder_name}/metrics.mat",
-        metrics)
-    utils.tabulate_results(
-        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/{folder_name}/metrics.mat",
-        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/{folder_name}"
-    )
+    mdict[folder_name] = {
+        'Scale': sigma0,
+        'rec': best_img,
+        'gt': im,
+        'rec_bi': im_bi,
+        'mse_array': mse_array.detach().cpu().numpy(),
+        'ssim_array': mse_array.detach().cpu().numpy(),
+    }
+
+    metrics[folder_name] = {
+        'Scale': sigma0,
+        'Scale Tensor': scale_tensor,
+        'Downscale': scale,
+        'Learning rate': learning_rate,
+        'Best MSE': -10 * torch.log10(best_mse).item(),
+        'Best SSIM': ssim_func(im, best_img, multichannel=True)
+    }
+    
+    filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/DS_{scale}/{folder_name}"
+    os.makedirs(filepath, exist_ok=True)
+    
+    plt.imsave(os.path.join(filepath, 'MSE_plot.png'), np.clip(abs(im-best_img), 0, 1),
+    vmin=0.0, vmax=0.1)
+
+    io.savemat(os.path.join(filepath, 'info.mat'), mdict)
+    io.savemat(os.path.join(filepath, 'metrics.mat'), metrics)
+    utils.tabulate_results(os.path.join(filepath, 'metrics.mat'), filepath)
+    utils.display_image(os.path.join(filepath, 'info.mat'))
+
     utils.log('Finished SISR experiment')

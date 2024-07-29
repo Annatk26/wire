@@ -20,21 +20,18 @@ from torch.optim.lr_scheduler import LambdaLR
 from modules import models
 from modules import utils
 from modules import lin_inverse
-from config import CONFIGS
+from configs import CONFIGS
 
 if __name__ == '__main__':
     utils.log('Starting CT experiment')
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_name", type=str, required=True)
     args = parser.parse_args()
-
     curr_config = CONFIGS[args.config_name]
-
 
     # Results
     mdict = {}  
     metrics = {}  
-    best_psnr = 0
 
     # Noise is not used in this script, but you can do so by modifying line 82 below
     tau = 3e1  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
@@ -42,10 +39,10 @@ if __name__ == '__main__':
     nmeas = 100  # Number of CT measurement
 
     weight_init = False
-    tvl = False  # Total variation loss
+    tvl = curr_config["tvl"]  # Total variation loss
 
     # Activation function constants.
-    omega0 = 0.0 
+    omega0 = 3.0 
     scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda() 
     sigma0 = curr_config["scale"]  
     learning_rate = curr_config["learning_rate"]
@@ -163,41 +160,38 @@ if __name__ == '__main__':
 
     if posencode:
         nonlin = "posenc"
-    if best_psnr < psnr2:
-        best_psnr = psnr2
-        if nonlin == 'bspline_mscale_1':
-            label = "MScale-1"
-        elif nonlin == 'bspline_mscale_2':
-            label = "MScale-2"
-        else: 
-            label = "No Multi-Scale"
-
-        mdict[label] = {
-            'Scale': sigma0,
-            'rec': img_estim_cpu,
-            'loss_array': loss_array,
-            'sinogram': sinogram,
-            'gt': img,
-        }
-        metrics[label] = {
-            'Scale': sigma0,
-            'Learning Rate': learning_rate,
-            'Best PSNR': psnr2,
-            'Best SSIM': ssim2
-        }
 
     folder_name = utils.make_unique(
-        f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/cubic_results/ct")
+        f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/ct")
+
+    mdict[folder_name] = {
+        'Scale': sigma0,
+        'rec': img_estim_cpu,
+        'loss_array': loss_array,
+        'sinogram': sinogram,
+        'gt': img,
+    }
+    metrics[folder_name] = {
+        'Scale': sigma0,
+        'Scale Tensor': scale_tensor,
+        'Learning Rate': learning_rate,
+        'Best PSNR': psnr2,
+        'Best SSIM': ssim2
+    }
+
     os.makedirs(
-        f"/rds/general/user/atk23/home/wire/cubic_results/ct/{folder_name}",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/ct/{folder_name}",
         exist_ok=True)
     io.savemat(
-        f"/rds/general/user/atk23/home/wire/cubic_results/ct/{folder_name}/info.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/ct/{folder_name}/info.mat",
         mdict)
     io.savemat(
-        f"/rds/general/user/atk23/home/wire/cubic_results/ct/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/ct/{folder_name}/metrics.mat",
         metrics)
     utils.tabulate_results(
-        f"/rds/general/user/atk23/home/wire/cubic_results/ct/{folder_name}/metrics.mat",
-        f"/rds/general/user/atk23/home/wire/cubic_results/ct/{folder_name}")
+        f"/rds/general/user/atk23/home/wire/multiscale_results/ct/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/ct/{folder_name}")
+    utils.display_image(
+    f"/rds/general/user/atk23/home/wire/multiscale_results/ct/{folder_name}/info.mat"
+    )
     utils.log('CT experiment completed')

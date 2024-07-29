@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 
-
 class Bsplines_form(nn.Module):
 
     def __init__(
@@ -129,11 +128,6 @@ class INR(nn.Module):
                     omega0=hidden_omega_0,
                     sigma0=scale,
                     trainable=False))
-
-        # Since complex numbers are two real numbers, reduce the number of
-        # hidden parameters by 2
-        #hidden_features = int(hidden_features / np.sqrt(2))
-        #dtype = torch.cfloat
 
         for i in range(hidden_layers-1):
             self.net.append(
