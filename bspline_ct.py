@@ -34,8 +34,9 @@ if __name__ == '__main__':
     metrics = {}  
 
     # Noise is not used in this script, but you can do so by modifying line 82 below
-    tau = 3e1  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
-    noise_snr = 2  # Readout noise (dB)
+    added_noise = curr_config['added_noise']  # Add noise to measurements
+    tau = curr_config['tau']  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
+    noise_snr = curr_config['noise_snr']  # Readout noise (dB)
     nmeas = 100  # Number of CT measurement
 
     weight_init = False
@@ -108,6 +109,8 @@ if __name__ == '__main__':
         sinogram_noisy = utils.measure(sinogram, noise_snr,
                                     tau).astype(np.float32)
         # Set below to sinogram_noisy instead of sinogram to get noise in measurements
+        if added_noise:
+            sinogram = sinogram_noisy
         sinogram_ten = torch.tensor(sinogram).cuda()
 
     x = torch.linspace(-1, 1, W).cuda()
@@ -116,8 +119,21 @@ if __name__ == '__main__':
 
     coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
 
-    optimizer = torch.optim.Adam(lr=learning_rate,
-                                params=model.parameters())
+    if isinstance(learning_rate, list):
+        param_groups = []
+        for i, stage in enumerate(model.stages):
+            param_groups.append({
+                'params': stage.parameters(),
+                'lr': learning_rate[i]
+            })
+            param_groups.append({
+                'params': model.linears[i].parameters(),
+                'lr': learning_rate[i]
+            })
+        optimizer = torch.optim.Adam(param_groups)
+    else:
+        optimizer = torch.optim.Adam(lr=learning_rate,
+                                    params=model.parameters())
 
     # Schedule to 0.1 times the initial rate
     scheduler = LambdaLR(optimizer, lambda x: 0.1**min(x / niters, 1))
@@ -173,7 +189,7 @@ if __name__ == '__main__':
     }
     metrics[folder_name] = {
         'Scale': sigma0,
-        'Scale Tensor': scale_tensor,
+        'Scale Tensor': curr_config["scale_tensor"],
         'Learning Rate': learning_rate,
         'Best PSNR': psnr2,
         'Best SSIM': ssim2

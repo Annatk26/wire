@@ -22,7 +22,7 @@ model_dict = {'gauss': gauss,
               'bspline_cubic': bspline_cubic,
               'bspline_mscale_2': bspline_mscale_2, 
               'bspline_mscale_HL': bspline_mscale_HL,
-              'bspline_hier': bspline_mscale_hier}
+              'bspline_mscale_hier': bspline_mscale_hier}
 
 def get_INR(nonlin, in_features, hidden_features, scaled_hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,

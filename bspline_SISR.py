@@ -19,8 +19,7 @@ import torch
 import torch.nn
 from torch.optim.lr_scheduler import LambdaLR
 
-from modules import models
-from modules import utils
+from modules import models, utils
 from configs import CONFIGS
 
 models = importlib.reload(models)
@@ -50,6 +49,11 @@ if __name__ == '__main__':
     sigma0 = curr_config["scale"]  
     scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
     learning_rate = curr_config["learning_rate"]
+
+    # Noise parameters 
+    added_noise = curr_config["added_noise"]
+    tau = curr_config["tau"]  # Photon noise (max. mean lambda)
+    noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
 
     # Network parameters
     nonlin = curr_config["nonlin"]
@@ -84,7 +88,12 @@ if __name__ == '__main__':
                        fx=1 / scale,
                        fy=1 / scale,
                        interpolation=cv2.INTER_AREA)
+    
+    if added_noise:
+        im_lr = utils.measure(im_lr, noise_snr, tau)
+    
     H2, W2, _ = im_lr.shape
+
 
     # Low-resolution image
     x = torch.linspace(-1, 1, W2).cuda()
@@ -124,9 +133,22 @@ if __name__ == '__main__':
 
     # Send model to CUDA
     model.cuda()
-
-    # Create an optimizer
-    optim = torch.optim.Adam(lr=learning_rate, params=model.parameters())
+    print(type(learning_rate))
+    if isinstance(learning_rate, list):
+        param_groups = []
+        for i, stage in enumerate(model.stages):
+            param_groups.append({
+                'params': stage.parameters(),
+                'lr': learning_rate[i]
+            })
+            param_groups.append({
+                'params': model.linears[i].parameters(),
+                'lr': learning_rate[i]
+            })
+        optim = torch.optim.Adam(param_groups)
+    else:
+        # Create an optimizer
+        optim = torch.optim.Adam(lr=learning_rate, params=model.parameters())
 
     # Schedule to 0.1 times the initial rate
     scheduler = LambdaLR(optim, lambda x: 0.2**min(x / niters, 1))
@@ -204,7 +226,7 @@ if __name__ == '__main__':
 
     metrics[folder_name] = {
         'Scale': sigma0,
-        'Scale Tensor': scale_tensor,
+        'Scale Tensor': curr_config["scale_tensor"],
         'Downscale': scale,
         'Learning rate': learning_rate,
         'Best MSE': -10 * torch.log10(best_mse).item(),

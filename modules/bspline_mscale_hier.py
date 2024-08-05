@@ -19,7 +19,7 @@ class Bsplines_form(nn.Module):
         self.is_first = is_first
         self.in_features = in_features
         self.out_features = out_features
-        self.scale_0 = nn.Parameter(self.scale_0 * torch.ones(1), trainable)
+        self.scale_0 = nn.Parameter(self.scale_0 * torch.ones(1, device='cuda'), trainable)
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         if init_weights:
@@ -51,8 +51,8 @@ class INR(nn.Module):
     def __init__(
         self,
         in_features,
-        scaled_hidden_features,
         hidden_features,
+        scaled_hidden_features,
         hidden_layers,
         out_features,
         outermost_linear=True,
@@ -69,7 +69,7 @@ class INR(nn.Module):
         super().__init__()
 
         self.stages = nn.ModuleList()
-        self.linears = nn.ModuleList()
+        self.linears = []
         self.nonlin = Bsplines_form
         self.scale_tensor: torch.Tensor = scale_tensor
         self.complex = False
@@ -77,7 +77,7 @@ class INR(nn.Module):
         self.num_stages = len(scale_tensor)
 
         for stage in range(self.num_stages):
-            layers = nn.ModuleList()
+            layers = []
             layers.append(
                 self.nonlin(
                     in_features, 
@@ -114,10 +114,12 @@ class INR(nn.Module):
         outputs = []
         for stage in range(self.num_stages):
             if stage == 0:
-                x = self.stages[stage](x)
+                for i in range(len(self.stages[stage])):
+                    x = self.stages[stage][i](x)
             else:
                 x_in = self.stages[stage][0](coords)
                 x_HL = self.stages[stage][1](torch.cat((x_in, x), dim=2))
                 x = self.stages[stage][2](x_HL)
+            self.linears[stage] = self.linears[stage].to(x.device)
             outputs.append(self.linears[stage](x))
         return torch.stack(outputs, dim=0).sum(dim=0)

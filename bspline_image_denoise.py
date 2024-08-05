@@ -73,15 +73,13 @@ y = torch.linspace(-1, 1, H)
 
 X, Y = torch.meshgrid(x, y, indexing="xy")
 coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
-
 gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
 gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 
 utils.log("System Information")
 utils.log(f"Non-linearity: {nonlin}, Learning Rate: {learning_rate}, Scale: {sigma0}")
 utils.log(
-    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}"
-)
+    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}")
 
 if nonlin == "posenc":
     nonlin = "relu"
@@ -112,9 +110,26 @@ model = models.get_INR(
 model.cuda()
 
 # Create an optimizer
-optim = torch.optim.Adam(
-    lr=learning_rate * min(1, maxpoints / (H * W)), params=model.parameters()
-)
+if isinstance(learning_rate, list):
+    param_groups = []
+    for i, stage in enumerate(model.stages):
+        param_groups.append({
+            "params":
+            stage.parameters(),
+            "lr":
+            learning_rate[i] * min(1, maxpoints / (H * W))
+        })
+        param_groups.append({
+            "params":
+            model.linears[i].parameters(),
+            "lr":
+            learning_rate[i] * min(1, maxpoints / (H * W))
+        })
+    optim = torch.optim.Adam(param_groups)
+else:
+    optim = torch.optim.Adam(
+        lr=learning_rate * min(1, maxpoints / (H * W)), params=model.parameters()
+    )
 
 # Schedule to reduce lr to 0.1 times the initial rate in final epoch
 scheduler = LambdaLR(optim, lambda x: 0.1 ** min(x / niters, 1))
