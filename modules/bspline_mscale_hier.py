@@ -75,6 +75,7 @@ class INR(nn.Module):
         self.complex = False
         self.pos_encode = False
         self.num_stages = len(scale_tensor)
+        self.scale_weights = nn.Parameter(torch.ones(self.num_stages))
 
         for stage in range(self.num_stages):
             layers = []
@@ -122,4 +123,7 @@ class INR(nn.Module):
                 x = self.stages[stage][2](x_HL)
             self.linears[stage] = self.linears[stage].to(x.device)
             outputs.append(self.linears[stage](x))
-        return torch.stack(outputs, dim=0).sum(dim=0)
+        weighted_out = [w * out for w, out in zip(self.scale_weights, outputs)]
+        return torch.stack(weighted_out).sum(dim=0)
+
+        # return torch.stack(outputs, dim=0).sum(dim=0)

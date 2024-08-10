@@ -167,7 +167,7 @@ class INR(nn.Module):
                 output.append(out)
             else:
                 out = x
-                for layer in self.net:
+                for layer in self.net: 
                     out = layer(out, scale)
                 output.append(out)
         return self.combine_scales(output, 'freq_combine')
