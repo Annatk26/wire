@@ -132,3 +132,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+outputs
+submit.sh
+commands.txt
+baseline_results
+bspline_results
+cubic_results
+data_freq_content
+bspline_mscale_attention.py
+
