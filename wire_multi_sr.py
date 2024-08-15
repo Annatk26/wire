@@ -134,11 +134,13 @@ if __name__ == '__main__':
                         in_features=2,
                         out_features=3, 
                         hidden_features=hidden_features,
+                        scaled_hidden_features=hidden_features,
                         hidden_layers=hidden_layers,
                         first_omega_0=omega0,
                         hidden_omega_0=omega0,
                         scale=sigma0,
                         pos_encode=posencode,
+                        multiscale=False,
                         sidelength=max(H, W))
             
         
