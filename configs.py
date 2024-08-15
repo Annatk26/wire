@@ -261,12 +261,12 @@ CONFIGS = {
     },
 
     # SISR
-    "MscaleHL_s1o9_ST4_3_SHF384_L1e3_E2000": {
-        "name": "MscaleHL_s1o9_ST4_3_SHF384_L1e3_E2000",
+    "MscaleHL_s1o9_ST4_SHF384_L1e3_E2000": {
+        "name": "MscaleHL_s1o9_ST4_SHF384_L1e3_E2000",
         "nonlin": "bspline_mscale_HL",
         "down_scale": 4,
         "scale": (1 / 9),
-        "scale_tensor": [(1 / 9), (1 / 9), 4],
+        "scale_tensor": [(1 / 9), 4],
         "hidden_features": 256,
         "scaled_hidden_features": 384,
         "tvl": False,
@@ -679,6 +679,79 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
+
+    "Mscale2_ST4_LR8e3_HF128_E4000": {
+        "name": "Mscale2_ST4_LR8e3_HF128_E4000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 128,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
+    "Mscale2_ST4_LR8e3_HF150_E4000": {
+        "name": "Mscale2_ST4_LR8e3_HF150_E4000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 150,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
+    "Mscale2_ST3_3_LR8e3_HF150_E4000": {
+        "name": "Mscale2_ST3_3_LR8e3_HF150_E4000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1/15), (1 / 9), 3],
+        "hidden_features": 150,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
+    "Mscale2_ST3_3_LR8e3_HF90_E4000": {
+        "name": "Mscale2_ST3_3_LR8e3_HF90_E4000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1/15), (1 / 9), 3],
+        "hidden_features": 90,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
     "Mscale2_ST2_LR8e3_E4000": {
         "name": "Mscale2_ST2_3_LR8e3_E4000",
         "nonlin": "bspline_mscale_2",
@@ -1079,6 +1152,7 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
+
     ########### Quadratic B-spline ###########
     "Bspline_s9_5_LR8e3_E4000": {
         "name": "Bspline_s9_5_LR8e3_E4000",
@@ -1093,6 +1167,22 @@ CONFIGS = {
         "tau": 3e1,
         "learning_rate": 8e-3,
         "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
+    "Bspline_s9_5_LR8e3_E2000_T3e7": {
+        "name": "Bspline_s9_5_LR8e3_E2000_T3e7",
+        "nonlin": "bspline_form",
+        "scale": 1 / 9.5,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
+        "niters": 2000,
         "maxpoints": 256 * 256,
     },
 
@@ -1336,6 +1426,24 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    ############## Image Representation ##############
+    "WIRE_s8_o7_LR1e2_E2000_T3e7": {
+        "name": "WIRE_s8_o7_LR1e2_E2000_T3e7",
+        "nonlin": "wire",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 300,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 5e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
     # SISR
     "WIRE_s9_o8_LR5e3_E2000": {
         "name": "WIRE_s9_o8_LR5e3_E2000",
@@ -1367,6 +1475,24 @@ CONFIGS = {
         "scaled_hidden_features": 0,
         "tvl": False,
         "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 5e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "WIRE_s12_o8_LR5e3_HF450_E2000": {
+        "name": "WIRE_s12_o8_LR5e3_HF450_E2000",
+        "nonlin": "wire",
+        "scale": 12.0,
+        "omega0": 3.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 450,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
         "noise_snr": 2,
         "tau": 3e1,
         "learning_rate": 5e-3,
@@ -1518,4 +1644,7 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
+
+
+
 }
