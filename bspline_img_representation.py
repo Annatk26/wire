@@ -23,7 +23,7 @@ args = parser.parse_args()
 
 curr_config = CONFIGS[args.config_name]
 
-utils.log("Starting image denoising experiment")
+utils.log("Starting image representation experiment")
 plt.gray()
 
 tvl = curr_config['tvl']  # Total variation loss
@@ -31,7 +31,6 @@ weight_init = False
 
 mdict = {}  # Dictionary to store info of each non-linearity
 metrics = {}  # Dictionary to store metrics of each non-linearity
-best_psnr = 0
 
 tau = curr_config["tau"]  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
 noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
@@ -47,9 +46,7 @@ hidden_layers = 2  # Number of hidden layers in the MLP
 hidden_features = curr_config["hidden_features"]  # Number of hidden units per layer
 maxpoints = curr_config["maxpoints"]  # Batch size
 niters = curr_config["niters"]  # Number of SGD iterations (2000)
-scaled_hidden_features = curr_config[
-    "scaled_hidden_features"
-]  # Number of hidden units in the first layer
+scaled_hidden_features = curr_config["scaled_hidden_features"]  # Number of hidden units in the first layer
 learning_rate = curr_config["learning_rate"]
 if nonlin == "bspline_mscale_1_new":
     in_features = 2 * len(scale_tensor) * scaled_hidden_features
@@ -59,14 +56,12 @@ else:
 # Read image and scale. A scale of 0.5 for parrot image ensures that it
 # fits in a 12GB GPU
 im = utils.normalize(
-    plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(np.float32),
-    True,
-)
+    plt.imread("/rds/general/user/atk23/home/wire/data/chequered.jpg").astype(np.float32),
+    True,) 
 im = cv2.resize(im, None, fx=1 / 2, fy=1 / 2, interpolation=cv2.INTER_AREA)
 H, W, _ = im.shape
 
 # Create a noisy image
-# im_noisy = utils.measure(im, noise_snr, tau)
 im_noisy = utils.measure(im, noise_snr, tau)
 
 x = torch.linspace(-1, 1, W)
@@ -81,8 +76,7 @@ gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 utils.log("System Information")
 utils.log(f"Non-linearity: {nonlin}, Learning Rate: {learning_rate}, Scale: {sigma0}")
 utils.log(
-    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}"
-)
+    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}")
 
 if nonlin == "posenc":
     nonlin = "relu"
@@ -184,7 +178,7 @@ if posencode:
 utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
 
 folder_name = utils.make_unique(
-    f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/denoise"
+    f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/representation"
 )
 mdict[folder_name] = {
     "Scale": sigma0,
@@ -204,21 +198,11 @@ metrics[folder_name] = {
     "Best PSNR": utils.psnr(im, best_img),
 }
 
-os.makedirs(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
-    exist_ok=True)
+filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/representation/{folder_name}"
+os.makedirs(filepath, exist_ok=True)
 
-io.savemat(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat",
-    mdict)
-io.savemat(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
-    metrics)
-utils.tabulate_results(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/metrics.mat",
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}",
-)
-utils.display_image(
-    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/{folder_name}/info.mat"
-)
-utils.log("Image denoise experiment completed")
+io.savemat(os.path.join(filepath, "info.mat"), mdict)
+io.savemat(os.path.join(filepath, "metrics.mat"), metrics)
+utils.tabulate_results(os.path.join(filepath, "metrics.mat"), filepath)
+utils.display_image(os.path.join(filepath, "info.mat"))
+utils.log("Image representation experiment completed")

@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 
-import pdb
-import math
-
 import numpy as np
 
 import torch
 from torch import nn
-
-from .utils import build_montage, normalize
     
 class SineLayer(nn.Module):
     '''
@@ -49,11 +44,11 @@ class SineLayer(nn.Module):
         return torch.sin(self.omega_0 * self.linear(input))
     
 class INR(nn.Module):
-    def __init__(self, in_features, hidden_features, 
+    def __init__(self, in_features, hidden_features, scaled_hidden_features,
                  hidden_layers, 
                  out_features, outermost_linear=True,
                  first_omega_0=30, hidden_omega_0=30., scale=10.0,
-                 pos_encode=False, sidelength=512, fn_samples=None,
+                 pos_encode=False, multiscale=False, sidelength=512, fn_samples=None,
                  use_nyquist=True):
         super().__init__()
         self.pos_encode = pos_encode

@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     # Network parameters
     hidden_layers = 2  
-    hidden_features = 300  # TODO: Number of hidden units per layer (300)
+    hidden_features = curr_config["hidden_features"]  # TODO: Number of hidden units per layer (300)
     scaled_hidden_features = curr_config["scaled_hidden_features"]
     nonlin = curr_config["nonlin"]
     niters = curr_config["niters"]
@@ -92,8 +92,8 @@ if __name__ == '__main__':
                         in_features=in_features,
                         out_features=1,
                         hidden_features=hidden_features,
-                        hidden_layers=hidden_layers,
                         scaled_hidden_features=scaled_hidden_features,
+                        hidden_layers=hidden_layers,
                         first_omega_0=omega0,
                         hidden_omega_0=omega0,
                         scale=sigma0,
