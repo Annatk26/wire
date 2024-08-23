@@ -76,8 +76,8 @@ class INR(nn.Module):
     def __init__(self, in_features,
                  hidden_features, scaled_hidden_features, hidden_layers, 
                  out_features, outermost_linear=True,
-                 first_omega_0=30, hidden_omega_0=30., scale=10.0,
-                 pos_encode=False, multiscale=False, sidelength=512, fn_samples=None,
+                 first_omega_0=30, hidden_omega_0=30., scale=10.0, scale_tensor=[],
+                 pos_encode=True, sidelength=512, fn_samples=None,
                  use_nyquist=True):
         super().__init__()
         self.pos_encode = pos_encode

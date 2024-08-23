@@ -193,29 +193,29 @@ for epoch in tbar:
 
     scheduler.step()
 
-    if epoch % 10 == 0:
+    if epoch % 100 == 0:
         model.eval()
         with torch.no_grad():
-            train_pred = model(coords[:, train_indices, ...].cpu())
-            test_pred = model(coords[:, test_indices, ...].cpu())
+            train_pred = model(coords[:, train_indices, ...].cuda())
+            test_pred = model(coords[:, test_indices, ...].cuda())
             
             train_mse.append(((train_pred - gt_noisy[:, train_indices, ...])**2).mean().item())
             test_mse.append(((test_pred - gt_noisy[:, test_indices, ...])**2).mean().item())
             
-            full_pred = model(coords.cpu())
+            full_pred = model(coords.cuda())
             full_mse = ((full_pred - gt_noisy)**2).mean().item()
             
             if full_mse < best_mse:
                 best_mse = full_mse
-                best_img = full_pred.reshape(gt_noisy.shape[1:]).cpu().numpy()
-            
+                best_img = full_pred.reshape(1, H, W, 3).squeeze().cpu().numpy()    
+                        
             print(f"Epoch {epoch}, Train MSE: {train_mse[-1]:.4f}, Test MSE: {test_mse[-1]:.4f}")
 
-    imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
+    # imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
 
-    if (mse_array[epoch] < best_mse) or (epoch == 0):
-        best_mse = mse_array[epoch]
-        best_img = imrec
+    # if (mse_array[epoch] < best_mse) or (epoch == 0):
+    #     best_mse = mse_array[epoch]
+    #     best_img = imrec
 
 if posencode:
     nonlin = "posenc"
@@ -223,7 +223,7 @@ if posencode:
 utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
 
 folder_name = utils.make_unique(
-    f"{curr_config['name']}", f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/T{tau}_SNR{noise_snr}"
+    f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/generalization/Parrot"
 )
 mdict[folder_name] = {
     "Scale": sigma0,
@@ -245,11 +245,11 @@ metrics[folder_name] = {
     "Best PSNR": utils.psnr(im, best_img),
 }
 
-filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/T{tau}_SNR{noise_snr}/{folder_name}"
+filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/generalization/Parrot/{folder_name}"
 os.makedirs(filepath, exist_ok=True)
 io.savemat(os.path.join(filepath, "info.mat"), mdict)
 io.savemat(os.path.join(filepath, "metrics.mat"), metrics)
 utils.tabulate_results(os.path.join(filepath, "metrics.mat"), filepath)
 utils.display_image(os.path.join(filepath, "info.mat"))
 
-utils.log("Image denoise experiment completed")
+utils.log("Image generalization experiment completed")

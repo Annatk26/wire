@@ -37,7 +37,8 @@ tau = curr_config["tau"]  # Photon noise (max. mean lambda). Set to 3e7 for repr
 noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
 
 # Activation function constants
-omega0 = 7.0
+# omega0 = 7.0
+omega0 = 3.0
 nonlin = curr_config["nonlin"]
 sigma0 = curr_config["scale"]
 scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
@@ -91,6 +92,7 @@ if nonlin == "posenc":
 else:
     posencode = False
     sidelength = H
+utils.log(f"PE: {posencode}, Sidelength: {sidelength}")
 
 model = models.get_INR(
     nonlin=nonlin,

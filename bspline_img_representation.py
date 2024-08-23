@@ -56,9 +56,11 @@ else:
 # Read image and scale. A scale of 0.5 for parrot image ensures that it
 # fits in a 12GB GPU
 im = utils.normalize(
-    plt.imread("/rds/general/user/atk23/home/wire/data/chequered.jpg").astype(np.float32),
-    True,) 
+    plt.imread("/rds/general/user/atk23/home/wire/data/Swirly.jpg").astype(np.float32),
+    True,)
 im = cv2.resize(im, None, fx=1 / 2, fy=1 / 2, interpolation=cv2.INTER_AREA)
+if im.shape[-1] == 4:
+    im = im[:, :, :3]
 H, W, _ = im.shape
 
 # Create a noisy image
