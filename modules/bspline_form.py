@@ -1,17 +1,21 @@
 import torch
 from torch import nn
-class Bsplines_form(nn.Module):
+import numpy as np
+from modules.utils import build_montage
 
+
+class Bsplines_form(nn.Module):
     def __init__(
-            self,
-            in_features,
-            out_features,
-            bias=True,
-            is_first=False,
-            omega0=-0.2,  # a = 1.0
-            sigma0=6.0,  # k = 10.0
-            init_weights=False,
-            trainable=False):
+        self,
+        in_features,
+        out_features,
+        bias=True,
+        is_first=False,
+        omega0=-0.2,  # a = 1.0
+        sigma0=6.0,  # k = 10.0
+        init_weights=False,
+        trainable=False,
+    ):
         super().__init__()
         self.omega_0 = omega0
         self.scale_0 = sigma0
@@ -25,22 +29,22 @@ class Bsplines_form(nn.Module):
         self.linear = nn.Linear(in_features, out_features, bias=bias)
         if init_weights:
             self.init_weights()
-    
+
     def init_weights(self):
         with torch.no_grad():
             if self.is_first:
-                # self.linear.weight.uniform_(-20000 / self.in_features, 
+                # self.linear.weight.uniform_(-20000 / self.in_features,
                 #                              20000 / self.in_features)
-                self.linear.weight.normal_(mean=0.0, std=2/(self.in_features)), 
+                (self.linear.weight.normal_(mean=0.0, std=2 / (self.in_features)),)
             # else:
             #     self.linear.weight.normal_(mean=0.0, std=2/self.in_features)*np.sqrt(2/self.in_features)
 
     def quadratic_relu(self, x):
-        return torch.nn.ReLU()(x)**2
+        return torch.nn.ReLU()(x) ** 2
 
     def forward(self, input):
         lin = self.linear(input)
-        lin = lin/self.scale_0
+        lin = lin / self.scale_0
         return (
             0.5 * self.quadratic_relu(lin + 1.5)
             - 1.5 * self.quadratic_relu(lin + 0.5)
@@ -48,27 +52,30 @@ class Bsplines_form(nn.Module):
             - 0.5 * self.quadratic_relu(lin - 1.5)
         )
 
+
 class INR(nn.Module):
 
-    def __init__(self,
-                 in_features,
-                 hidden_features,
-                 scaled_hidden_features,
-                 hidden_layers,
-                 out_features,
-                 outermost_linear=True,
-                 first_omega_0=-0.2,
-                 hidden_omega_0=-0.2,
-                 scale=15.0,
-                 scale_tensor=[],
-                 pos_encode=False,
-                 sidelength=512,
-                 fn_samples=None,
-                 use_nyquist=True):
+    def __init__(
+        self,
+        in_features,
+        hidden_features,
+        scaled_hidden_features,
+        hidden_layers,
+        out_features,
+        outermost_linear=True,
+        first_omega_0=-0.2,
+        hidden_omega_0=-0.2,
+        scale=15.0,
+        scale_tensor=[],
+        pos_encode=False,
+        sidelength=512,
+        fn_samples=None,
+        use_nyquist=True,
+    ):
         super().__init__()
 
         # All results in the paper were with the default complex 'gabor' nonlinearity
-        
+
         self.net = []
         self.complex = False
         # Legacy parameter
@@ -76,26 +83,28 @@ class INR(nn.Module):
 
         self.nonlin = Bsplines_form
         self.net.append(
-        self.nonlin(in_features,
-                    hidden_features,
-                    omega0=first_omega_0,
-                    sigma0=scale,
-                    is_first=True,
-                    trainable=False))
-
-        
+            self.nonlin(
+                in_features,
+                hidden_features,
+                omega0=first_omega_0,
+                sigma0=scale,
+                is_first=True,
+                trainable=False,
+            ))
 
         # Since complex numbers are two real numbers, reduce the number of
         # hidden parameters by 2
-        #hidden_features = int(hidden_features / np.sqrt(2))
-        #dtype = torch.cfloat
+        # hidden_features = int(hidden_features / np.sqrt(2))
+        # dtype = torch.cfloat
 
         for i in range(hidden_layers):
             self.net.append(
-                self.nonlin(hidden_features,
-                            hidden_features,
-                            omega0=hidden_omega_0,
-                            sigma0=scale))
+                self.nonlin(
+                    hidden_features,
+                    hidden_features,
+                    omega0=hidden_omega_0,
+                    sigma0=scale,
+                ))
 
         if outermost_linear:
             if self.complex:
@@ -103,7 +112,9 @@ class INR(nn.Module):
             else:
                 dtype = torch.float
 
-            final_linear = nn.Linear(hidden_features, out_features, dtype=dtype)
+            final_linear = nn.Linear(hidden_features,
+                                     out_features,
+                                     dtype=dtype)
             self.net.append(final_linear)
         else:
             self.net.append(
@@ -117,3 +128,48 @@ class INR(nn.Module):
     def forward(self, coords):
         output = self.net(coords)
         return output
+
+    def forward_with_grad(self, coords):
+        coords = coords.detach().clone().requires_grad_(True)
+        output = self.net(coords)
+        return output, coords
+
+    def forward_with_activations(self, coords, H, W, nfilters_vis='all'):
+        atom_montages = []
+
+        for idx in range(len(self.net) - 1):
+            layer_output = self.net[idx](coords)
+            layer_images = layer_output.reshape(1, H, W, -1)[0]
+
+            if nfilters_vis != 'all':
+                layer_images = layer_images[..., 120:120 + nfilters_vis]
+
+            atoms = layer_images.detach().cpu().numpy().real
+
+            atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
+            atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
+
+            signs = (abs(atoms_min) > abs(atoms_max))
+            atoms = (1 - 2 * signs) * atoms
+
+            # Arrange them by variance
+            atoms_std = atoms.std((0, 1))
+            std_indices = np.argsort(atoms_std)
+
+            atoms = atoms[..., std_indices]
+
+            atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
+            atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
+
+            atoms = (atoms - atoms_min) / np.maximum(1e-14,
+                                                     atoms_max - atoms_min)
+
+            atoms[:, [0, -1], :] = 1
+            atoms[[0, -1], :, :] = 1
+
+            atoms_montage = build_montage(np.transpose(atoms, [2, 0, 1]))
+
+            atom_montages.append(atoms_montage)
+            coords = layer_output
+
+        return atom_montages

@@ -1,5 +1,7 @@
 import torch
 from torch import nn
+import numpy as np
+from modules.utils import build_montage
 
 class Bsplines_form(nn.Module):
     def __init__(
@@ -8,10 +10,10 @@ class Bsplines_form(nn.Module):
         out_features,
         bias=True,
         is_first=False,
-        omega0=-0.2, 
-        sigma0=6.0,  
+        omega0=-0.2,
+        sigma0=6.0,
         init_weights=False,
-        trainable=False
+        trainable=False,
     ):
         super().__init__()
 
@@ -66,8 +68,7 @@ class Scaled_Bsplines_form(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
 
-        self.scale_0 = nn.Parameter(
-            self.scale_0.clone().detach(), trainable)
+        self.scale_0 = nn.Parameter(self.scale_0.clone().detach(), trainable)
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
     def quadratic_relu(self, x):
@@ -85,16 +86,22 @@ class Scaled_Bsplines_form(nn.Module):
     def forward(self, input):
         lin = self.linear(input)
         # Slice the output into parts
-        split_size = (lin.size(2)-256) // (len(self.scale_0)-1)
+        split_size = (lin.size(2) - 256) // (len(self.scale_0) - 1)
         split_tensor_1 = lin[..., :256].clone().detach()
-        split_tensor_2 = [lin[..., 256+i*split_size:256+(i+1)*split_size].clone().detach() for i in range(len(self.scale_0)-1)]
+        split_tensor_2 = [
+            lin[..., 256 + i * split_size : 256 + (i + 1) * split_size].clone().detach()
+            for i in range(len(self.scale_0) - 1)
+        ]
         # Apply different activations
         out_tensor = []
         out_tensor.append(self.quadratic_bspline(split_tensor_1, self.scale_0[0]))
-        for i in range(len(self.scale_0)-1):
-            out_tensor.append(self.quadratic_bspline(split_tensor_2[i], self.scale_0[i+1]))
+        for i in range(len(self.scale_0) - 1):
+            out_tensor.append(
+                self.quadratic_bspline(split_tensor_2[i], self.scale_0[i + 1])
+            )
         output = torch.cat(out_tensor, dim=2)
-        return output 
+        return output
+
 
 class INR(nn.Module):
     def __init__(
@@ -110,7 +117,6 @@ class INR(nn.Module):
         scale=15.0,
         scale_tensor=[],
         pos_encode=False,
-        multiscale=True,
         sidelength=512,
         fn_samples=None,
         use_nyquist=True,
@@ -144,17 +150,17 @@ class INR(nn.Module):
                 scaled_hidden_features,
                 hidden_features,
                 omega0=hidden_omega_0,
-                sigma0=scale
+                sigma0=scale,
             )
         )
 
-        for i in range(hidden_layers-1):
+        for i in range(hidden_layers - 1):
             self.net.append(
                 self.nonlin(
                     hidden_features,
                     hidden_features,
                     omega0=hidden_omega_0,
-                    sigma0=scale
+                    sigma0=scale,
                 )
             )
 
@@ -178,3 +184,44 @@ class INR(nn.Module):
     def forward(self, coords: torch.Tensor):
         output = self.net(coords)
         return output
+    
+    def forward_with_activations(self, coords, H, W, nfilters_vis='all'):
+        atom_montages = []
+    
+        for idx in range(len(self.net)-1):
+            layer_output = self.net[idx](coords)
+            layer_images = layer_output.reshape(1, H, W, -1)[0]
+            
+            if nfilters_vis != 'all':
+                layer_images = layer_images[..., 120:120+nfilters_vis]
+                
+
+            atoms = layer_images.detach().cpu().numpy().real
+                
+            atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
+            atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
+            
+            signs = (abs(atoms_min) > abs(atoms_max))
+            atoms = (1 - 2*signs)*atoms
+            
+            # Arrange them by variance
+            atoms_std = atoms.std((0,1))
+            std_indices = np.argsort(atoms_std)
+            
+            atoms = atoms[..., std_indices]
+            
+            atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
+            atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
+            
+            atoms = (atoms - atoms_min)/np.maximum(1e-14, atoms_max - atoms_min)
+            
+            atoms[:, [0, -1], :] = 1
+            atoms[[0, -1], :, :] = 1
+            
+            atoms_montage = build_montage(np.transpose(atoms, [2, 0, 1]))
+            
+            atom_montages.append(atoms_montage)
+            coords = layer_output
+            
+        return atom_montages
+

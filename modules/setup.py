@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from .utils import log
 
+
 def seed_everything(seed: int = 0) -> None:
     random.seed(seed)
     np.random.seed(seed)

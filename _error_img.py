@@ -12,10 +12,9 @@ import os
 # Load the images
 # image1 = cv2.imread('/rds/general/multiscale_resultsuser/atk23/home/wire/data/parrot.png')
 filepath = "multiscale_results/representation/WIRE_s8_o7_LR1e2_E2000_T3e7_2"
-image2 = plt.imread(os.path.join(filepath, 'Output_img.png')).astype(np.float32)
+image2 = plt.imread(os.path.join(filepath, "Output_img.png")).astype(np.float32)
 image1 = utils.normalize(
-    plt.imread("/rds/general/user/atk23/home/wire/data/Smeared.jpg").astype(
-        np.float32),
+    plt.imread("/rds/general/user/atk23/home/wire/data/Smeared.jpg").astype(np.float32),
     True,
 )
 # plt.imsave(os.path.join(filepath, 'Input_img.png'), image1)
@@ -34,6 +33,4 @@ error_image = cv2.absdiff(gray_image1, gray_image2)
 # Normalize the error image to the range [0, 255] for visualization
 normalized_error = cv2.normalize(error_image, None, 0, 255, cv2.NORM_MINMAX)
 normalized_error = np.uint8(normalized_error)
-plt.imsave(os.path.join(filepath, 'Error_Img.png'),
-           normalized_error,
-           cmap='hot')
+plt.imsave(os.path.join(filepath, "Error_Img.png"), normalized_error, cmap="hot")

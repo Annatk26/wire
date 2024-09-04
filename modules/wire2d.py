@@ -3,29 +3,32 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-class ComplexGaborLayer2D(nn.Module):
-    '''
-        Implicit representation with complex Gabor nonlinearity with 2D activation function
-        
-        Inputs;
-            in_features: Input features
-            out_features; Output features
-            bias: if True, enable bias for the linear operation
-            is_first: Legacy SIREN parameter
-            omega_0: Legacy SIREN parameter
-            omega0: Frequency of Gabor sinusoid term
-            sigma0: Scaling of Gabor Gaussian term
-            trainable: If True, omega and sigma are trainable parameters
-    '''
 
-    def __init__(self,
-                 in_features,
-                 out_features,
-                 bias=True,
-                 is_first=False,
-                 omega0=10.0,
-                 sigma0=10.0,
-                 trainable=False):
+class ComplexGaborLayer2D(nn.Module):
+    """
+    Implicit representation with complex Gabor nonlinearity with 2D activation function
+
+    Inputs;
+        in_features: Input features
+        out_features; Output features
+        bias: if True, enable bias for the linear operation
+        is_first: Legacy SIREN parameter
+        omega_0: Legacy SIREN parameter
+        omega0: Frequency of Gabor sinusoid term
+        sigma0: Scaling of Gabor Gaussian term
+        trainable: If True, omega and sigma are trainable parameters
+    """
+
+    def __init__(
+        self,
+        in_features,
+        out_features,
+        bias=True,
+        is_first=False,
+        omega0=10.0,
+        sigma0=10.0,
+        trainable=False,
+    ):
         super().__init__()
         self.omega_0 = omega0
         self.scale_0 = sigma0
@@ -42,16 +45,10 @@ class ComplexGaborLayer2D(nn.Module):
         self.omega_0 = nn.Parameter(self.omega_0 * torch.ones(1), trainable)
         self.scale_0 = nn.Parameter(self.scale_0 * torch.ones(1), trainable)
 
-        self.linear = nn.Linear(in_features,
-                                out_features,
-                                bias=bias,
-                                dtype=dtype)
+        self.linear = nn.Linear(in_features, out_features, bias=bias, dtype=dtype)
 
         # Second Gaussian window
-        self.scale_orth = nn.Linear(in_features,
-                                    out_features,
-                                    bias=bias,
-                                    dtype=dtype)
+        self.scale_orth = nn.Linear(in_features, out_features, bias=bias, dtype=dtype)
 
     def forward(self, input):
         lin = self.linear(input)
@@ -68,20 +65,21 @@ class ComplexGaborLayer2D(nn.Module):
 
 
 class INR(nn.Module):
-
-    def __init__(self,
-                 in_features,
-                 hidden_features,
-                 hidden_layers,
-                 out_features,
-                 outermost_linear=True,
-                 first_omega_0=10,
-                 hidden_omega_0=10.,
-                 scale=10.0,
-                 pos_encode=False,
-                 sidelength=512,
-                 fn_samples=None,
-                 use_nyquist=True):
+    def __init__(
+        self,
+        in_features,
+        hidden_features,
+        hidden_layers,
+        out_features,
+        outermost_linear=True,
+        first_omega_0=10,
+        hidden_omega_0=10.0,
+        scale=10.0,
+        pos_encode=False,
+        sidelength=512,
+        fn_samples=None,
+        use_nyquist=True,
+    ):
         super().__init__()
 
         # All results in the paper were with the default complex 'gabor' nonlinearity
@@ -92,26 +90,32 @@ class INR(nn.Module):
         hidden_features = int(hidden_features / 2)
         dtype = torch.cfloat
         self.complex = True
-        self.wavelet = 'gabor'
+        self.wavelet = "gabor"
 
         # Legacy parameter
         self.pos_encode = False
 
         self.net = []
         self.net.append(
-            self.nonlin(in_features,
-                        hidden_features,
-                        omega0=first_omega_0,
-                        sigma0=scale,
-                        is_first=True,
-                        trainable=False))
+            self.nonlin(
+                in_features,
+                hidden_features,
+                omega0=first_omega_0,
+                sigma0=scale,
+                is_first=True,
+                trainable=False,
+            )
+        )
 
         for i in range(hidden_layers):
             self.net.append(
-                self.nonlin(hidden_features,
-                            hidden_features,
-                            omega0=hidden_omega_0,
-                            sigma0=scale))
+                self.nonlin(
+                    hidden_features,
+                    hidden_features,
+                    omega0=hidden_omega_0,
+                    sigma0=scale,
+                )
+            )
 
         final_linear = nn.Linear(hidden_features, out_features, dtype=dtype)
         self.net.append(final_linear)
@@ -121,7 +125,7 @@ class INR(nn.Module):
     def forward(self, coords):
         output = self.net(coords)
 
-        if self.wavelet == 'gabor':
+        if self.wavelet == "gabor":
             return output.real
 
         return output

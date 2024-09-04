@@ -9,6 +9,7 @@ import numpy as np
 
 import cv2
 import matplotlib.pyplot as plt
+
 plt.gray()
 
 from skimage.metrics import structural_similarity as ssim_func
@@ -20,20 +21,25 @@ from modules import models
 from modules import utils
 from modules import lin_inverse
 
-if __name__ == '__main__':
-    utils.log('Starting CT experiment')
+if __name__ == "__main__":
+    utils.log("Starting CT experiment")
     nonlin_types = [
-        'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
+        "wire",
+        "siren",
+        "mfn",
+        "relu",
+        "posenc",
+        "gauss",
     ]  # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     niters = 5000  # Number of SGD iterations
-    #learning_rate = 5e-3        # Learning rate.
+    # learning_rate = 5e-3        # Learning rate.
 
     mdict = {}  # Dictionary to store info of each non-linearity
     metrics = {}  # Dictionary to store metrics of each non-linearity
     nmeas = 100  # Number of CT measurement
     expected = {
-        "Expected PSNR": [32.3, 30.3, 18.1, 0.0, 28.5, 29.2], 
-        "Expected SSIM": [0.81, 0.76, 0.23, 0.0, 0.71, 0.73]
+        "Expected PSNR": [32.3, 30.3, 18.1, 0.0, 28.5, 29.2],
+        "Expected SSIM": [0.81, 0.76, 0.23, 0.0, 0.71, 0.73],
     }
 
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
@@ -46,7 +52,7 @@ if __name__ == '__main__':
     # Gabor filter constants.
     omega0 = 3.0  # Frequency of sinusoid
     sigma0 = 12.0  # Sigma of Gaussian (12.0)
-    utils.log(f'Omega0: {omega0}, Sigma0: {sigma0}')
+    utils.log(f"Omega0: {omega0}, Sigma0: {sigma0}")
     # Network parameters
     hidden_layers = 2  # Number of hidden layers in the MLP
     hidden_features = 300  # Number of hidden units per layer
@@ -55,9 +61,9 @@ if __name__ == '__main__':
     thetas = torch.tensor(np.linspace(0, 180, nmeas, dtype=np.float32)).cuda()
 
     # Create phantom
-    img = cv2.imread(
-        '/rds/general/user/atk23/home/wire/data/chest.png').astype(
-            np.float32)[..., 1]
+    img = cv2.imread("/rds/general/user/atk23/home/wire/data/chest.png").astype(
+        np.float32
+    )[..., 1]
     img = utils.normalize(img, True)
     [H, W] = img.shape
     imten = torch.tensor(img)[None, None, ...].cuda()
@@ -65,7 +71,7 @@ if __name__ == '__main__':
     # Create model
     for i, nonlin in enumerate(nonlin_types):
         learning_rate = {
-            #"wire2d": 5e-3,
+            # "wire2d": 5e-3,
             "wire": 5e-3,
             "siren": 2e-3,
             "mfn": 5e-2,
@@ -73,52 +79,52 @@ if __name__ == '__main__':
             "posenc": 1e-3,
             "gauss": 2e-3,
         }[nonlin]
-        utils.log(f'{nonlin} learning rate: {learning_rate}')
-        if nonlin == 'wire':
+        utils.log(f"{nonlin} learning rate: {learning_rate}")
+        if nonlin == "wire":
             omega0 = 3.0
-        elif nonlin == 'siren':
+        elif nonlin == "siren":
             omega0 = 12.0
-        if nonlin == 'posenc':
-            nonlin = 'relu'
+        if nonlin == "posenc":
+            nonlin = "relu"
             posencode = True
         else:
             posencode = False
 
-        model = models.get_INR(nonlin=nonlin,
-                            in_features=2,
-                            out_features=1,
-                            hidden_features=hidden_features,
-                            hidden_layers=hidden_layers,
-                            first_omega_0=omega0,
-                            hidden_omega_0=omega0,
-                            scale=sigma0,
-                            pos_encode=posencode,
-                            sidelength=nmeas)
+        model = models.get_INR(
+            nonlin=nonlin,
+            in_features=2,
+            out_features=1,
+            hidden_features=hidden_features,
+            hidden_layers=hidden_layers,
+            first_omega_0=omega0,
+            hidden_omega_0=omega0,
+            scale=sigma0,
+            pos_encode=posencode,
+            sidelength=nmeas,
+        )
 
         model = model.cuda()
 
         with torch.no_grad():
             sinogram = lin_inverse.radon(imten, thetas).detach().cpu()
             sinogram = sinogram.numpy()
-            sinogram_noisy = utils.measure(sinogram, noise_snr,
-                                        tau).astype(np.float32)
+            sinogram_noisy = utils.measure(sinogram, noise_snr, tau).astype(np.float32)
             # Set below to sinogram_noisy instead of sinogram to get noise in measurements
             sinogram_ten = torch.tensor(sinogram).cuda()
 
         x = torch.linspace(-1, 1, W).cuda()
         y = torch.linspace(-1, 1, H).cuda()
 
-        X, Y = torch.meshgrid(x, y, indexing='xy')
+        X, Y = torch.meshgrid(x, y, indexing="xy")
 
         coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
 
-        optimizer = torch.optim.Adam(lr=learning_rate,
-                                    params=model.parameters())
+        optimizer = torch.optim.Adam(lr=learning_rate, params=model.parameters())
 
         # Schedule to 0.1 times the initial rate
-        scheduler = LambdaLR(optimizer, lambda x: 0.1**min(x / niters, 1))
+        scheduler = LambdaLR(optimizer, lambda x: 0.1 ** min(x / niters, 1))
 
-        best_loss = float('inf')
+        best_loss = float("inf")
         loss_array = np.zeros(niters)
         best_im = None
 
@@ -130,7 +136,7 @@ if __name__ == '__main__':
             # Compute sinogram
             sinogram_estim = lin_inverse.radon(img_estim, thetas)
 
-            loss = ((sinogram_ten - sinogram_estim)**2).mean()
+            loss = ((sinogram_ten - sinogram_estim) ** 2).mean()
 
             optimizer.zero_grad()
             loss.backward()
@@ -139,11 +145,11 @@ if __name__ == '__main__':
 
             with torch.no_grad():
                 img_estim_cpu = img_estim.detach().cpu().squeeze().numpy()
-                #if sys.platform == 'win32':
+                # if sys.platform == 'win32':
                 #   cv2.imshow('Image', img_estim_cpu)
                 #  cv2.waitKey(1)
 
-                loss_gt = ((img_estim - imten)**2).mean()
+                loss_gt = ((img_estim - imten) ** 2).mean()
                 loss_array[idx] = loss_gt.item()
 
                 if loss_gt < best_loss:
@@ -154,34 +160,46 @@ if __name__ == '__main__':
 
         psnr2 = utils.psnr(img, img_estim_cpu)
         ssim2 = ssim_func(img, img_estim_cpu)
-        
+
         if posencode:
             nonlin = "posenc"
 
         mdict[nonlin] = {
-            'rec': img_estim_cpu,
-            'loss_array': loss_array,
-            'sinogram': sinogram,
-            'gt': img,
+            "rec": img_estim_cpu,
+            "loss_array": loss_array,
+            "sinogram": sinogram,
+            "gt": img,
         }
         metrics[nonlin] = {
-            'Omega0': omega0,
-            'Sigma0': sigma0,
-            'Learning Rate': learning_rate,
-            'Best PSNR': psnr2,
-            'Best SSIM': ssim2,
-            'Expected PSNR': expected['Expected PSNR'][i],
-            'Expected SSIM': expected['Expected SSIM'][i],
-            'PSNR Difference': abs(psnr2 - expected['Expected PSNR'][i]),
-            'SSIM Difference': abs(ssim2 - expected['Expected SSIM'][i]),
+            "Omega0": omega0,
+            "Sigma0": sigma0,
+            "Learning Rate": learning_rate,
+            "Best PSNR": psnr2,
+            "Best SSIM": ssim2,
+            "Expected PSNR": expected["Expected PSNR"][i],
+            "Expected SSIM": expected["Expected SSIM"][i],
+            "PSNR Difference": abs(psnr2 - expected["Expected PSNR"][i]),
+            "SSIM Difference": abs(ssim2 - expected["Expected SSIM"][i]),
         }
 
-    folder_name = utils.make_unique(f"ct_omega_{omega0}", "/rds/general/user/atk23/home/wire/baseline_results")
-    os.makedirs(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}",
-                exist_ok=True)
-    io.savemat(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/info.mat",
-            mdict)
-    io.savemat(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat", metrics)
+    folder_name = utils.make_unique(
+        f"ct_omega_{omega0}", "/rds/general/user/atk23/home/wire/baseline_results"
+    )
+    os.makedirs(
+        f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}",
+        exist_ok=True,
+    )
+    io.savemat(
+        f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/info.mat",
+        mdict,
+    )
+    io.savemat(
+        f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat",
+        metrics,
+    )
 
-    utils.tabulate_results(f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat", f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}")
-utils.log('CT experiment completed')
+    utils.tabulate_results(
+        f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}/metrics.mat",
+        f"/rds/general/user/atk23/home/wire/baseline_results/{folder_name}",
+    )
+utils.log("CT experiment completed")

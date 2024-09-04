@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-'''
-    Miscellaneous utilities that are extremely helpful but cannot be clubbed
-    into other modules.
-'''
+"""
+Miscellaneous utilities that are extremely helpful but cannot be clubbed
+into other modules.
+"""
 
 from datetime import datetime
 import os
 import re
+
 # Plotting
 import cv2
+
 # Scientific computing
 import numpy as np
 import scipy.linalg as lin
@@ -19,17 +21,17 @@ import matplotlib.pyplot as plt
 
 
 def normalize(x, fullnormalize=False):
-    '''
-        Normalize input to lie between 0, 1.
+    """
+    Normalize input to lie between 0, 1.
 
-        Inputs:
-            x: Input signal
-            fullnormalize: If True, normalize such that minimum is 0 and
-                maximum is 1. Else, normalize such that maximum is 1 alone.
+    Inputs:
+        x: Input signal
+        fullnormalize: If True, normalize such that minimum is 0 and
+            maximum is 1. Else, normalize such that maximum is 1 alone.
 
-        Outputs:
-            xnormalized: Normalized x.
-    '''
+    Outputs:
+        xnormalized: Normalized x.
+    """
 
     if x.sum() == 0:
         return x
@@ -47,16 +49,16 @@ def normalize(x, fullnormalize=False):
 
 
 def rsnr(x, xhat):
-    '''
-        Compute reconstruction SNR for a given signal and its reconstruction.
+    """
+    Compute reconstruction SNR for a given signal and its reconstruction.
 
-        Inputs:
-            x: Ground truth signal (ndarray)
-            xhat: Approximation of x
+    Inputs:
+        x: Ground truth signal (ndarray)
+        xhat: Approximation of x
 
-        Outputs:
-            rsnr_val: RSNR = 20log10(||x||/||x-xhat||)
-    '''
+    Outputs:
+        rsnr_val: RSNR = 20log10(||x||/||x-xhat||)
+    """
     xn = lin.norm(x.reshape(-1))
     en = lin.norm((x - xhat).reshape(-1))
     rsnr_val = 20 * np.log10(xn / en)
@@ -65,15 +67,15 @@ def rsnr(x, xhat):
 
 
 def psnr(x, xhat):
-    ''' Compute Peak Signal to Noise Ratio in dB
+    """Compute Peak Signal to Noise Ratio in dB
 
-        Inputs:
-            x: Ground truth signal
-            xhat: Reconstructed signal
+    Inputs:
+        x: Ground truth signal
+        xhat: Reconstructed signal
 
-        Outputs:
-            snrval: PSNR in dB
-    '''
+    Outputs:
+        snrval: PSNR in dB
+    """
     err = x - xhat
     denom = np.mean(pow(err, 2))
 
@@ -83,22 +85,22 @@ def psnr(x, xhat):
 
 
 def measure(x, noise_snr=40, tau=100):
-    ''' Realistic sensor measurement with readout and photon noise
+    """Realistic sensor measurement with readout and photon noise
 
-        Inputs:
-            noise_snr: Readout noise in electron count
-            tau: Integration time. Poisson noise is created for x*tau.
-                (Default is 100)
+    Inputs:
+        noise_snr: Readout noise in electron count
+        tau: Integration time. Poisson noise is created for x*tau.
+            (Default is 100)
 
-        Outputs:
-            x_meas: x with added noise
-    '''
+    Outputs:
+        x_meas: x with added noise
+    """
     x_meas = np.copy(x)
 
     noise = np.random.randn(x_meas.size).reshape(x_meas.shape) * noise_snr
 
     # First add photon noise, provided it is not infinity
-    if tau != float('Inf'):
+    if tau != float("Inf"):
         x_meas = x_meas * tau
 
         x_meas[x > 0] = np.random.poisson(x_meas[x > 0])
@@ -111,27 +113,29 @@ def measure(x, noise_snr=40, tau=100):
 
     return x_meas
 
+
 def add_salt_and_pepper_noise(image, salt_prob, pepper_prob):
     # Get the dimensions of the image
     rows, cols, _ = image.shape
-    
+
     # Create a copy of the image
     noisy_image = np.copy(image)
-    
+
     # Add salt noise
     salt_mask = np.random.random(image.shape[:2]) < salt_prob
     noisy_image[salt_mask] = 255
-    
+
     # Add pepper noise
     pepper_mask = np.random.random(image.shape[:2]) < pepper_prob
     noisy_image[pepper_mask] = 0
-    
+
     return noisy_image
 
+
 def build_montage(images):
-    '''
-        Build a montage out of images
-    '''
+    """
+    Build a montage out of images
+    """
     nimg, H, W = images.shape
 
     nrows = int(np.ceil(np.sqrt(nimg)))
@@ -161,29 +165,29 @@ def count_parameters(model):
 
 
 def get_coords(H, W, T=None):
-    '''
-        Get 2D/3D coordinates
-    '''
+    """
+    Get 2D/3D coordinates
+    """
     if T is None:
         X, Y = np.meshgrid(np.linspace(-1, 1, W), np.linspace(-1, 1, H))
         coords = np.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))
     else:
-        X, Y, Z = np.meshgrid(np.linspace(-1, 1, W), np.linspace(-1, 1, H),
-                              np.linspace(-1, 1, T))
-        coords = np.hstack((X.reshape(-1, 1), Y.reshape(-1,
-                                                        1), Z.reshape(-1, 1)))
+        X, Y, Z = np.meshgrid(
+            np.linspace(-1, 1, W), np.linspace(-1, 1, H), np.linspace(-1, 1, T)
+        )
+        coords = np.hstack((X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)))
 
     return torch.tensor(coords.astype(np.float32))
 
 
 def resize(cube, scale):
-    '''
-        Resize a multi-channel image
-        
-        Inputs:
-            cube: (H, W, nchan) image stack
-            scale: Scaling 
-    '''
+    """
+    Resize a multi-channel image
+
+    Inputs:
+        cube: (H, W, nchan) image stack
+        scale: Scaling
+    """
     H, W, nchan = cube.shape
 
     im0_lr = cv2.resize(cube[..., 0], None, fx=scale, fy=scale)
@@ -192,34 +196,32 @@ def resize(cube, scale):
     cube_lr = np.zeros((Hl, Wl, nchan), dtype=cube.dtype)
 
     for idx in range(nchan):
-        cube_lr[..., idx] = cv2.resize(cube[..., idx],
-                                       None,
-                                       fx=scale,
-                                       fy=scale,
-                                       interpolation=cv2.INTER_AREA)
+        cube_lr[..., idx] = cv2.resize(
+            cube[..., idx], None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA
+        )
     return cube_lr
 
 
-def get_inpainting_mask(imsize, mask_type='random2d', mask_frac=0.5):
-    '''
-        Get a 2D mask for image inpainting
-        
-        Inputs:
-            imsize: Image size
-            mask_type: one of 'random2d', 'random1d'
-            mask_frac: Fraction of non-zeros in the mask
-            
-        Outputs:
-            mask: A 2D mask image
-    '''
+def get_inpainting_mask(imsize, mask_type="random2d", mask_frac=0.5):
+    """
+    Get a 2D mask for image inpainting
+
+    Inputs:
+        imsize: Image size
+        mask_type: one of 'random2d', 'random1d'
+        mask_frac: Fraction of non-zeros in the mask
+
+    Outputs:
+        mask: A 2D mask image
+    """
     H, W = imsize
 
-    if mask_type == 'random2d':
+    if mask_type == "random2d":
         mask = np.random.rand(H, W) < mask_frac
-    elif mask_type == 'random1d':
+    elif mask_type == "random1d":
         mask_row = np.random.rand(1, W) < mask_frac
         mask = np.ones((H, 1)).dot(mask_row)
-    elif mask_type == 'bayer':
+    elif mask_type == "bayer":
         mask = np.zeros((H, W))
         mask[::2, ::2] = 1
 
@@ -228,19 +230,19 @@ def get_inpainting_mask(imsize, mask_type='random2d', mask_frac=0.5):
 
 @torch.no_grad()
 def get_layer_outputs(model, coords, imsize, nfilters_vis=16, get_imag=False):
-    '''
-        get activation images after each layer
-        
-        Inputs:
-            model: INR model
-            coords: 2D coordinates
-            imsize: Size of the image
-            nfilters_vis: Number of filters to visualize
-            get_imag: If True, get imaginary component of the outputs
-            
-        Outputs:
-            atoms_montages: A list of 2d grid of outputs
-    '''
+    """
+    get activation images after each layer
+
+    Inputs:
+        model: INR model
+        coords: 2D coordinates
+        imsize: Size of the image
+        nfilters_vis: Number of filters to visualize
+        get_imag: If True, get imaginary component of the outputs
+
+    Outputs:
+        atoms_montages: A list of 2d grid of outputs
+    """
     H, W = imsize
 
     if model.pos_encode:
@@ -252,7 +254,7 @@ def get_layer_outputs(model, coords, imsize, nfilters_vis=16, get_imag=False):
         layer_output = model.net[idx](coords)
         layer_images = layer_output.reshape(1, H, W, -1)[0]
 
-        if nfilters_vis != 'all':
+        if nfilters_vis != "all":
             layer_images = layer_images[..., :nfilters_vis]
 
         if get_imag:
@@ -263,7 +265,7 @@ def get_layer_outputs(model, coords, imsize, nfilters_vis=16, get_imag=False):
         atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
         atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
 
-        signs = (abs(atoms_min) > abs(atoms_max))
+        signs = abs(atoms_min) > abs(atoms_max)
         atoms = (1 - 2 * signs) * atoms
 
         # Arrange them by variance
@@ -293,19 +295,19 @@ def log(message):
 
 
 def tabulate_results(mat_file, path):
-        # Load the .mat file
+    # Load the .mat file
     mat = io.loadmat(mat_file)
 
     # Create a dictionary of the variables in the .mat file
     variables = {}
     for key in mat.keys():
-        if not key.startswith('__'):
+        if not key.startswith("__"):
             variables[key] = mat[key]
-    
+
     nonlin_all = list(variables.keys())
     data = {}
     first_nonlin = nonlin_all[0]
-    
+
     for key in mat[first_nonlin][0, 0].dtype.names:
         data[key] = []
 
@@ -323,16 +325,16 @@ def tabulate_results(mat_file, path):
     # Save the DataFrame to a markdown file
     df.to_markdown(os.path.join(path, "metrics_table.md"), floatfmt=".3f")
 
+
 def display_image(image_path):
     mat = io.loadmat(image_path)
     for key in mat.keys():
         if not key.startswith("__"):
             img = mat[key][0, 0]
-            image = img['rec']
-            save_path = os.path.join(os.path.dirname(image_path), "Output_img.png") 
-            plt.imsave(save_path, np.clip(abs(image), 0, 1), 
-                vmin=0.0,
-                vmax=1.0)
+            image = img["rec"]
+            save_path = os.path.join(os.path.dirname(image_path), "Output_img.png")
+            plt.imsave(save_path, np.clip(abs(image), 0, 1), vmin=0.0, vmax=1.0)
+
 
 def make_unique(folder_name, folder_path):
     # Regular expression to detect if the folder name ends with _digit
@@ -341,7 +343,7 @@ def make_unique(folder_name, folder_path):
 
     if match:
         # Extract the numeric part and increment it
-        base_name = folder_name[:match.start()]
+        base_name = folder_name[: match.start()]
         counter = int(match.group(1)) + 1
     else:
         base_name = folder_name
@@ -357,13 +359,14 @@ def make_unique(folder_name, folder_path):
 
     return new_folder_name
 
+
 def total_variation_loss(image):
     # Calculate differences in x direction
     diff_x = image[:, :, 1:, :] - image[:, :, :-1, :]
     # Calculate differences in y direction
     diff_y = image[:, :, :, 1:] - image[:, :, :, :-1]
-    
+
     # Sum of absolute differences
     tv_loss = torch.sum(torch.abs(diff_x)) + torch.sum(torch.abs(diff_y))
-    
+
     return tv_loss

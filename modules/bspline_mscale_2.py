@@ -1,18 +1,21 @@
 import torch
 from torch import nn
-class Bsplines_form(nn.Module):
+import numpy as np
+from modules.utils import build_montage
 
+class Bsplines_form(nn.Module):
     def __init__(
-            self,
-            in_features,
-            out_features,
-            bias=True,
-            is_first=False,
-            omega0=-0.2,  # a = 1.0
-            # sigma0=6.0,  # k = 10.0
-            # scale_tensor=[],
-            init_weights=False,
-            trainable=False):
+        self,
+        in_features,
+        out_features,
+        bias=True,
+        is_first=False,
+        omega0=-0.2,  # a = 1.0
+        # sigma0=6.0,  # k = 10.0
+        # scale_tensor=[],
+        init_weights=False,
+        trainable=False,
+    ):
         super().__init__()
         self.is_first = is_first
         self.in_features = in_features
@@ -27,14 +30,14 @@ class Bsplines_form(nn.Module):
     def init_weights(self):
         with torch.no_grad():
             if self.is_first:
-                # self.linear.weight.uniform_(-20000 / self.in_features, 
+                # self.linear.weight.uniform_(-20000 / self.in_features,
                 #                              20000 / self.in_features)
-                self.linear.weight.normal_(mean=0.0, std=2/(self.in_features)), 
+                (self.linear.weight.normal_(mean=0.0, std=2 / (self.in_features)),)
             # else:
             #     self.linear.weight.normal_(mean=0.0, std=2/self.in_features)*np.sqrt(2/self.in_features)
 
     def quadratic_relu(self, x):
-        return torch.nn.ReLU()(x)**2
+        return torch.nn.ReLU()(x) ** 2
 
     def forward(self, input, scale):
         lin = self.linear(input)
@@ -45,6 +48,7 @@ class Bsplines_form(nn.Module):
             + 1.5 * self.quadratic_relu(lin - 0.5)
             - 0.5 * self.quadratic_relu(lin - 1.5)
         )
+
 
 class AdaptiveScaleCombiner(nn.Module):
     def __init__(self, num_scales, out_features, image_size, type):
@@ -58,61 +62,59 @@ class AdaptiveScaleCombiner(nn.Module):
         self.scale_weights = nn.Parameter(torch.ones(num_scales))
         # Frequency-based combination
         self.freq_mlp = nn.Sequential(
-                    nn.Linear(num_scales * out_features, 128),
-                    nn.ReLU(),
-                    nn.Linear(128, out_features)
-                    )   
+            nn.Linear(num_scales * out_features, 128),
+            nn.ReLU(),
+            nn.Linear(128, out_features),
+        )
         # Attention mechanism
         # self.attention_dim = 6  # Choose a dimension that's divisible by common head numbers (1, 2, 4, 8)
         # self.attention_proj_in = nn.Linear(out_features, self.attention_dim)
         # self.attention = nn.MultiheadAttention(embed_dim=self.attention_dim, num_heads=2)
         # self.attention_proj_out = nn.Linear(self.attention_dim, out_features)
-        
+
         # Final refinement
         self.refine = nn.Sequential(
-            nn.Linear(out_features, 128),
-            nn.ReLU(),
-            nn.Linear(128, out_features)
+            nn.Linear(out_features, 128), nn.ReLU(), nn.Linear(128, out_features)
         )
 
     def forward(self, outputs, type):
         # 1. Adaptive Scale Weighting
-        if type == 'scale_weights':
+        if type == "scale_weights":
             output = [w * out for w, out in zip(self.scale_weights, outputs)]
             final_output = torch.stack(output).sum(dim=0)
         # 2. Frequency-based Combination
-        elif type == 'freq_combine':
+        elif type == "freq_combine":
             concat_outputs = torch.cat(outputs, dim=-1)
             final_output = self.freq_mlp(concat_outputs)
-        elif type == 'both':
+        elif type == "both":
             weighted_outputs = [w * out for w, out in zip(self.scale_weights, outputs)]
             concat_outputs = torch.cat(weighted_outputs, dim=-1)
             freq_combined = self.freq_mlp(concat_outputs)
-            final_output = self.refine(freq_combined)    
+            final_output = self.refine(freq_combined)
         return final_output
-    
+
+
 class INR(nn.Module):
-    
     # def combine_scales(self, outputs):
     #     return torch.stack(outputs).sum(dim=0)
 
-    def __init__(self,
-                 in_features,
-                 hidden_features,
-                 scaled_hidden_features,
-                 hidden_layers,
-                 out_features,
-                 outermost_linear=True,
-                 first_omega_0=-0.2,
-                 hidden_omega_0=-0.2,
-                 scale=15.0,
-                 scale_tensor=[],
-                 pos_encode=False,
-                 multiscale=True,
-                 sidelength=512,
-                 fn_samples=None,
-                 use_nyquist=True):
-        
+    def __init__(
+        self,
+        in_features,
+        hidden_features,
+        scaled_hidden_features,
+        hidden_layers,
+        out_features,
+        outermost_linear=True,
+        first_omega_0=-0.2,
+        hidden_omega_0=-0.2,
+        scale=15.0,
+        scale_tensor=[],
+        pos_encode=False,
+        sidelength=512,
+        fn_samples=None,
+        use_nyquist=True,
+    ):
         super().__init__()
 
         self.nonlin = Bsplines_form
@@ -121,23 +123,29 @@ class INR(nn.Module):
         self.scale0 = scale
         self.scale_tensor = scale_tensor
         self.outermost_linear = outermost_linear
-        self.combine_scales = AdaptiveScaleCombiner(len(scale_tensor), out_features, sidelength, 'both')
+        self.combine_scales = AdaptiveScaleCombiner(
+            len(scale_tensor), out_features, sidelength, "both"
+        )
 
         self.net = []
         self.net.append(
-                self.nonlin(in_features,
-                            hidden_features,
-                            omega0=first_omega_0,
-                            # sigma0=scale
-                            ))
-    
+            self.nonlin(
+                in_features,
+                hidden_features,
+                omega0=first_omega_0,
+                # sigma0=scale
+            )
+        )
+
         for i in range(int(hidden_layers)):
             self.net.append(
-                self.nonlin(hidden_features,
-                            hidden_features,
-                            omega0=hidden_omega_0,
-                            # sigma0=scale
-                            ))
+                self.nonlin(
+                    hidden_features,
+                    hidden_features,
+                    omega0=hidden_omega_0,
+                    # sigma0=scale
+                )
+            )
         if outermost_linear:
             if self.complex:
                 dtype = torch.cfloat
@@ -148,12 +156,14 @@ class INR(nn.Module):
             self.net.append(final_linear)
         else:
             self.net.append(
-                self.nonlin(hidden_features,
-                            out_features,
-                            omega0=hidden_omega_0,
-                            # sigma0=scale
-                            ))
-        
+                self.nonlin(
+                    hidden_features,
+                    out_features,
+                    omega0=hidden_omega_0,
+                    # sigma0=scale
+                )
+            )
+
         self.net = nn.Sequential(*self.net)
 
     def forward(self, x):
@@ -167,7 +177,48 @@ class INR(nn.Module):
                 output.append(out)
             else:
                 out = x
-                for layer in self.net: 
+                for layer in self.net:
                     out = layer(out, scale)
                 output.append(out)
-        return self.combine_scales(output, 'freq_combine')
+        return self.combine_scales(output, "freq_combine")
+    
+    def forward_with_activations(self, coords, H, W, nfilters_vis='all'):
+        atom_montages = []
+        for scale in self.scale_tensor:
+            for idx in range(len(self.net)-1):
+                layer_output = self.net[idx](coords, scale)
+                layer_images = layer_output.reshape(1, H, W, -1)[0]
+                
+                if nfilters_vis != 'all':
+                    layer_images = layer_images[..., 120:120+nfilters_vis]
+                    
+
+                atoms = layer_images.detach().cpu().numpy().real
+                    
+                atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
+                atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
+                
+                signs = (abs(atoms_min) > abs(atoms_max))
+                atoms = (1 - 2*signs)*atoms
+                
+                # Arrange them by variance
+                atoms_std = atoms.std((0,1))
+                std_indices = np.argsort(atoms_std)
+                
+                atoms = atoms[..., std_indices]
+                
+                atoms_min = atoms.min(0, keepdims=True).min(1, keepdims=True)
+                atoms_max = atoms.max(0, keepdims=True).max(1, keepdims=True)
+                
+                atoms = (atoms - atoms_min)/np.maximum(1e-14, atoms_max - atoms_min)
+                
+                atoms[:, [0, -1], :] = 1
+                atoms[[0, -1], :, :] = 1
+                
+                atoms_montage = build_montage(np.transpose(atoms, [2, 0, 1]))
+                
+                atom_montages.append(atoms_montage)
+                coords = layer_output
+            
+        return atom_montages
+

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 class Bsplines_form(nn.Module):
     def __init__(
         self,
@@ -8,10 +9,10 @@ class Bsplines_form(nn.Module):
         out_features,
         bias=True,
         is_first=False,
-        omega0=-0.2, 
-        sigma0=6.0,  
+        omega0=-0.2,
+        sigma0=6.0,
         init_weights=False,
-        trainable=False
+        trainable=False,
     ):
         super().__init__()
 
@@ -19,7 +20,9 @@ class Bsplines_form(nn.Module):
         self.is_first = is_first
         self.in_features = in_features
         self.out_features = out_features
-        self.scale_0 = nn.Parameter(self.scale_0 * torch.ones(1, device='cuda'), trainable)
+        self.scale_0 = nn.Parameter(
+            self.scale_0 * torch.ones(1, device="cuda"), trainable
+        )
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
         if init_weights:
@@ -47,6 +50,7 @@ class Bsplines_form(nn.Module):
             - 0.5 * self.quadratic_relu(lin - 1.5)
         )
 
+
 class INR(nn.Module):
     def __init__(
         self,
@@ -61,7 +65,6 @@ class INR(nn.Module):
         scale=15.0,
         scale_tensor=[],
         pos_encode=False,
-        multiscale=True,
         sidelength=512,
         fn_samples=None,
         use_nyquist=True,
@@ -81,8 +84,8 @@ class INR(nn.Module):
             layers = []
             layers.append(
                 self.nonlin(
-                    in_features, 
-                    hidden_features, 
+                    in_features,
+                    hidden_features,
                     omega0=first_omega_0,
                     sigma0=scale_tensor[stage],
                 )
@@ -90,23 +93,23 @@ class INR(nn.Module):
 
             layers.append(
                 self.nonlin(
-                    hidden_features * 2 if stage != 0 else hidden_features, 
-                    hidden_features, 
+                    hidden_features * 2 if stage != 0 else hidden_features,
+                    hidden_features,
                     omega0=hidden_omega_0,
                     sigma0=scale_tensor[stage],
                 )
             )
-                
-            for _ in range(hidden_layers-1):
+
+            for _ in range(hidden_layers - 1):
                 layers.append(
                     self.nonlin(
-                        hidden_features, 
-                        hidden_features, 
+                        hidden_features,
+                        hidden_features,
                         omega0=hidden_omega_0,
                         sigma0=scale_tensor[stage],
                     )
                 )
-            
+
             self.stages.append(nn.Sequential(*layers))
             self.linears.append(nn.Linear(hidden_features, out_features))
 

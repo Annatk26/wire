@@ -26,19 +26,21 @@ curr_config = CONFIGS[args.config_name]
 utils.log("Starting image denoising experiment")
 plt.gray()
 
-tvl = curr_config['tvl']  # Total variation loss
+tvl = curr_config["tvl"]  # Total variation loss
 weight_init = False
 
 mdict = {}  # Dictionary to store info of each non-linearity
 metrics = {}  # Dictionary to store metrics of each non-linearity
 best_psnr = 0
 
-tau = curr_config["tau"]  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
+tau = curr_config[
+    "tau"
+]  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
 noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
 
 # Activation function constants
 # omega0 = 7.0
-omega0 = 3.0
+omega0 = 30.0
 nonlin = curr_config["nonlin"]
 sigma0 = curr_config["scale"]
 scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
@@ -80,7 +82,8 @@ gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 utils.log("System Information")
 utils.log(f"Non-linearity: {nonlin}, Learning Rate: {learning_rate}, Scale: {sigma0}")
 utils.log(
-    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}")
+    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}"
+)
 
 if nonlin == "posenc":
     nonlin = "relu"
@@ -115,18 +118,18 @@ model.cuda()
 if isinstance(learning_rate, list):
     param_groups = []
     for i, stage in enumerate(model.stages):
-        param_groups.append({
-            "params":
-            stage.parameters(),
-            "lr":
-            learning_rate[i] * min(1, maxpoints / (H * W))
-        })
-        param_groups.append({
-            "params":
-            model.linears[i].parameters(),
-            "lr":
-            learning_rate[i] * min(1, maxpoints / (H * W))
-        })
+        param_groups.append(
+            {
+                "params": stage.parameters(),
+                "lr": learning_rate[i] * min(1, maxpoints / (H * W)),
+            }
+        )
+        param_groups.append(
+            {
+                "params": model.linears[i].parameters(),
+                "lr": learning_rate[i] * min(1, maxpoints / (H * W)),
+            }
+        )
     optim = torch.optim.Adam(param_groups)
 else:
     optim = torch.optim.Adam(
@@ -200,7 +203,8 @@ if posencode:
 utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
 
 folder_name = utils.make_unique(
-    f"{curr_config['name']}", f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/T{tau}_SNR{noise_snr}"
+    f"{curr_config['name']}",
+    f"/rds/general/user/atk23/home/wire/multiscale_results/denoise/T{tau}_SNR{noise_snr}",
 )
 mdict[folder_name] = {
     "Scale": sigma0,

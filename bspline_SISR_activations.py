@@ -31,7 +31,7 @@ args = parser.parse_args()
 curr_config = CONFIGS[args.config_name]
 
 if __name__ == "__main__":
-    utils.log("Starting SISR experiment")
+    utils.log("Starting SISR experiment: Visualizing activations")
 
     weight_init = False
     tvl = curr_config["tvl"]  # Total variation loss
@@ -69,6 +69,12 @@ if __name__ == "__main__":
     else:
         in_features = 2
 
+    folder_name = utils.make_unique(
+        f"{curr_config['name']}",
+        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/Face/DS_{scale}",
+    )
+    filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/Face/DS_{scale}/{folder_name}"
+    os.makedirs(filepath, exist_ok=True)
     # Read image
     im = utils.normalize(
         plt.imread("/rds/general/user/atk23/home/wire/data/Face.png").astype(
@@ -196,6 +202,17 @@ if __name__ == "__main__":
 
             im_rec = rec_hr.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
 
+            if epoch == 1500:
+                activation_montages = model.forward_with_activations(coords_hr, H, W, nfilters_vis=25)
+                # Iterate through the montages and plot each one
+                for idx, montage in enumerate(activation_montages):
+                    plt.figure(figsize=(10, 10))
+                    plt.title(f'Layer {idx + 1} Activations')
+                    plt.imshow(montage, cmap='viridis')  # Choose a colormap that best represents your data
+                    plt.axis('off')  # Remove axes for better visualization
+                    plt.imsave(os.path.join(filepath, f'layer_{idx + 1}_epoch_{epoch}.png'), montage, cmap='viridis')
+                    plt.close()
+
             mse_array[epoch] = ((gt - rec_hr)**2).mean().item()
             ssim_array[epoch] = ssim(im_gt,
                                      im_rec,
@@ -219,10 +236,6 @@ if __name__ == "__main__":
     utils.log(f"Best MSE: {-10 * torch.log10(best_mse).item()}")
     utils.log(f"Best SSIM: {ssim_func(im, best_img, multichannel=True)}")
 
-    folder_name = utils.make_unique(
-        f"{curr_config['name']}",
-        f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/Face/DS_{scale}",
-    )
 
     mdict[folder_name] = {
         "Scale": sigma0,
@@ -242,8 +255,6 @@ if __name__ == "__main__":
         "Best SSIM": ssim_func(im, best_img, multichannel=True),
     }
 
-    filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/sisr/Face/DS_{scale}/{folder_name}"
-    os.makedirs(filepath, exist_ok=True)
 
     plt.imsave(
         os.path.join(filepath, "MSE_plot.png"),

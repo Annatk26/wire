@@ -26,18 +26,20 @@ curr_config = CONFIGS[args.config_name]
 utils.log("Starting image generalization experiment")
 plt.gray()
 
-tvl = curr_config['tvl']  # Total variation loss
+tvl = curr_config["tvl"]  # Total variation loss
 weight_init = False
 
 mdict = {}  # Dictionary to store info of each non-linearity
 metrics = {}  # Dictionary to store metrics of each non-linearity
 best_psnr = 0
 
-tau = curr_config["tau"]  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
+tau = curr_config[
+    "tau"
+]  # Photon noise (max. mean lambda). Set to 3e7 for representation, 3e1 for denoising
 noise_snr = curr_config["noise_snr"]  # Readout noise (dB)
 
 # Activation function constants
-omega0 = 7.0
+omega0 = 30.0
 nonlin = curr_config["nonlin"]
 sigma0 = curr_config["scale"]
 scale_tensor = torch.tensor(curr_config["scale_tensor"]).cuda()
@@ -59,7 +61,7 @@ else:
 # Read image and scale. A scale of 0.5 for parrot image ensures that it
 # fits in a 12GB GPU
 im = utils.normalize(
-    plt.imread("/rds/general/user/atk23/home/wire/data/parrot.png").astype(np.float32),
+    plt.imread("/rds/general/user/atk23/home/wire/data/Sky.png").astype(np.float32),
     True,
 )
 im = cv2.resize(im, None, fx=1 / 2, fy=1 / 2, interpolation=cv2.INTER_AREA)
@@ -74,7 +76,7 @@ X, Y = torch.meshgrid(x, y, indexing="xy")
 coords = torch.hstack((X.reshape(-1, 1), Y.reshape(-1, 1)))[None, ...]
 
 indices = torch.randperm(H * W)
-split = int(H*W * 0.8)
+split = int(H * W * 0.7)
 train_indices, test_indices = indices[:split], indices[split:]
 
 gt = torch.tensor(im).cuda().reshape(H * W, 3)[None, ...]
@@ -83,7 +85,8 @@ gt_noisy = torch.tensor(im_noisy).cuda().reshape(H * W, 3)[None, ...]
 utils.log("System Information")
 utils.log(f"Non-linearity: {nonlin}, Learning Rate: {learning_rate}, Scale: {sigma0}")
 utils.log(
-    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}")
+    f"Scale tensor: {scale_tensor}, Hidden features (scaled layer): {scaled_hidden_features}"
+)
 
 if nonlin == "posenc":
     nonlin = "relu"
@@ -117,18 +120,18 @@ model.cuda()
 if isinstance(learning_rate, list):
     param_groups = []
     for i, stage in enumerate(model.stages):
-        param_groups.append({
-            "params":
-            stage.parameters(),
-            "lr":
-            learning_rate[i] * min(1, maxpoints / (H * W))
-        })
-        param_groups.append({
-            "params":
-            model.linears[i].parameters(),
-            "lr":
-            learning_rate[i] * min(1, maxpoints / (H * W))
-        })
+        param_groups.append(
+            {
+                "params": stage.parameters(),
+                "lr": learning_rate[i] * min(1, maxpoints / (H * W)),
+            }
+        )
+        param_groups.append(
+            {
+                "params": model.linears[i].parameters(),
+                "lr": learning_rate[i] * min(1, maxpoints / (H * W)),
+            }
+        )
     optim = torch.optim.Adam(param_groups)
 else:
     optim = torch.optim.Adam(
@@ -154,7 +157,7 @@ for epoch in tbar:
     indices = torch.randperm(H * W)
 
     for b_idx in range(0, H * W, maxpoints):
-        b_indices = train_indices[b_idx:min(H * W, b_idx + maxpoints)]
+        b_indices = train_indices[b_idx : min(H * W, b_idx + maxpoints)]
         b_coords = coords[:, b_indices, ...].cuda()
         b_indices = b_indices.cuda()
         pixelvalues = model(b_coords)
@@ -162,15 +165,16 @@ for epoch in tbar:
         # with torch.no_grad():
         #     rec[:, b_indices, :] = pixelvalues
 
-        mse_loss = ((pixelvalues - gt_noisy[:, b_indices, :])**2).mean()
+        mse_loss = ((pixelvalues - gt_noisy[:, b_indices, :]) ** 2).mean()
 
         lambda_tv = curr_config["lambda_tv"]
         tv_loss = 0.0
         if tvl:
             if b_idx % (maxpoints * 10) == 0:  # every 10 batches
                 with torch.no_grad():
-                    full_prediction = (model(coords.cuda()).reshape(
-                        1, H, W, 3).permute(0, 3, 1, 2))
+                    full_prediction = (
+                        model(coords.cuda()).reshape(1, H, W, 3).permute(0, 3, 1, 2)
+                    )
                     tv_loss = utils.total_variation_loss(full_prediction)
             else:
                 tv_loss = 0.0
@@ -198,18 +202,24 @@ for epoch in tbar:
         with torch.no_grad():
             train_pred = model(coords[:, train_indices, ...].cuda())
             test_pred = model(coords[:, test_indices, ...].cuda())
-            
-            train_mse.append(((train_pred - gt_noisy[:, train_indices, ...])**2).mean().item())
-            test_mse.append(((test_pred - gt_noisy[:, test_indices, ...])**2).mean().item())
-            
+
+            train_mse.append(
+                ((train_pred - gt_noisy[:, train_indices, ...]) ** 2).mean().item()
+            )
+            test_mse.append(
+                ((test_pred - gt_noisy[:, test_indices, ...]) ** 2).mean().item()
+            )
+
             full_pred = model(coords.cuda())
-            full_mse = ((full_pred - gt_noisy)**2).mean().item()
-            
+            full_mse = ((full_pred - gt_noisy) ** 2).mean().item()
+
             if full_mse < best_mse:
                 best_mse = full_mse
-                best_img = full_pred.reshape(1, H, W, 3).squeeze().cpu().numpy()    
-                        
-            print(f"Epoch {epoch}, Train MSE: {train_mse[-1]:.4f}, Test MSE: {test_mse[-1]:.4f}")
+                best_img = full_pred.reshape(1, H, W, 3).squeeze().cpu().numpy()
+
+            print(
+                f"Epoch {epoch}, Train MSE: {train_mse[-1]:.4f}, Test MSE: {test_mse[-1]:.4f}"
+            )
 
     # imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
 
@@ -223,7 +233,8 @@ if posencode:
 utils.log(f"Best PSNR for {nonlin}: {utils.psnr(im, best_img)}")
 
 folder_name = utils.make_unique(
-    f"{curr_config['name']}", "/rds/general/user/atk23/home/wire/multiscale_results/generalization/Parrot"
+    f"{curr_config['name']}",
+    "/rds/general/user/atk23/home/wire/multiscale_results/generalization/Sky",
 )
 mdict[folder_name] = {
     "Scale": sigma0,
@@ -245,7 +256,7 @@ metrics[folder_name] = {
     "Best PSNR": utils.psnr(im, best_img),
 }
 
-filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/generalization/Parrot/{folder_name}"
+filepath = f"/rds/general/user/atk23/home/wire/multiscale_results/generalization/Sky/{folder_name}"
 os.makedirs(filepath, exist_ok=True)
 io.savemat(os.path.join(filepath, "info.mat"), mdict)
 io.savemat(os.path.join(filepath, "metrics.mat"), metrics)

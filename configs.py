@@ -1,5 +1,4 @@
 CONFIGS = {
-
     ######## MScaleHL ########
     "MscaleHL_s1_ST2_SHF256": {
         "name": "MscaleHL_s1_ST2_SHF256",
@@ -241,7 +240,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############## BEST RESULT ##############
     # Image denoise
     "MscaleHL_s1o9_ST4_3_SHF384_LR8e3_E4000": {
@@ -259,7 +257,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     # Image representation & generalization
     "MscaleHL_s1o9_ST4_SHF384_LR8e3_E4000_T3e7": {
         "name": "MscaleHL_s1o9_ST4_SHF384_LR8e3_E4000_T3e7",
@@ -277,6 +274,54 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "MscaleHL_s1o9_ST4_SHF384_LR8e3_E2000_T3e7": {
+        "name": "MscaleHL_s1o9_ST4_SHF384_LR8e3_E2000_T3e7",
+        "nonlin": "bspline_mscale_HL",
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "MscaleHL_s1o9_ST4_3_SHF512_LR8e3_E2000_T3e7": {
+        "name": "MscaleHL_s1o9_ST4_3_SHF512_LR8e3_E2000_T3e7",
+        "nonlin": "bspline_mscale_HL",
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), (1/12), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 512,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "MscaleHL_s1o9_ST4_3_SHF512_LR8e3_E2000_T3e7_1": {
+        "name": "MscaleHL_s1o9_ST4_3_SHF512_LR8e3_E2000_T3e7_1",
+        "nonlin": "bspline_mscale_HL",
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), (1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 512,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+    
     # SISR
     "MscaleHL_s1o9_ST4_SHF384_L1e3_E2000": {
         "name": "MscaleHL_s1o9_ST4_SHF384_L1e3_E2000",
@@ -284,6 +329,60 @@ CONFIGS = {
         "down_scale": 4,
         "scale": (1 / 9),
         "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "MscaleHL_s1o9_ST1o15_SHF384_L1e3_E2000": {
+        "name": "MscaleHL_s1o9_ST1o15_SHF384_L1e3_E2000",
+        "nonlin": "bspline_mscale_HL",
+        "down_scale": 4,
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), (1/15)],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "MscaleHL_s1o15_ST1o15_SHF384_L1e3_E2000": {
+        "name": "MscaleHL_s1o15_ST1o15_SHF384_L1e3_E2000",
+        "nonlin": "bspline_mscale_HL",
+        "down_scale": 4,
+        "scale": (1 / 15),
+        "scale_tensor": [(1 / 9), (1/15)],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "MscaleHL_s1o9_ST1o20_SHF384_L1e3_E2000": {
+        "name": "MscaleHL_s1o9_ST1o20_SHF384_L1e3_E2000",
+        "nonlin": "bspline_mscale_HL",
+        "down_scale": 4,
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), (1/20)],
         "hidden_features": 256,
         "scaled_hidden_features": 384,
         "tvl": False,
@@ -312,7 +411,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "MscaleHL_s1o9_ST12_SHF384_LR1e3_E2000": {
         "name": "MscaleHL_s1o9_ST12_SHF384_LR1e3_E2000",
         "nonlin": "bspline_mscale_HL",
@@ -330,7 +428,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "MscaleHL_s1o9_ST12_SHF384_LR1e3_E4000": {
         "name": "MscaleHL_s1o9_ST12_SHF384_LR1e3_E4000",
         "nonlin": "bspline_mscale_HL",
@@ -348,7 +445,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "MscaleHL_s1o9_ST16_3_SHF384_LR1e3_E2000": {
         "name": "MscaleHL_s1o9_ST16_3_SHF384_LR1e3_E2000",
         "nonlin": "bspline_mscale_HL",
@@ -366,7 +462,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ################### CT ###################
     "MscaleHL_s1o9_ST4_SHF384_LR8e3_E4000": {
         "name": "MscaleHL_s1o9_ST4_SHF384_LR8e3_E4000",
@@ -480,7 +575,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############## SISR with Added Noise ##############
     "MscaleHL_Noise_s1o9_ST16_3_SHF384_LR1e3_E2000": {
         "name": "MscaleHL_Noise_s1o9_ST16_3_SHF384_LR1e3_E2000",
@@ -499,7 +593,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ############# Different downsampling #############
     "MscaleHL_s1o9_Ds6_ST4_SHF384_LR1e3_E2000": {
         "name": "MscaleHL_s1o9_Ds6_ST4_SHF384_LR1e3_E2000",
@@ -515,6 +608,24 @@ CONFIGS = {
         "tau": 3e1,
         "learning_rate": 1e-3,
         "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "MscaleHL_s1o9_Ds6_ST4_SHF384_LR1e3_E4000": {
+        "name": "MscaleHL_s1o9_Ds6_ST4_SHF384_LR1e3_E4000",
+        "nonlin": "bspline_mscale_HL",
+        "down_scale": 6,
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "added_noise": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 4000,
         "maxpoints": 256 * 256,
     },
     "MscaleHL_s1o9_Ds6_ST6_SHF384_LR1e3_E2000": {
@@ -598,6 +709,23 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "MscaleHL_s1o9_Ds16_ST4_SHF384_LR1e3_E4000": {
+        "name": "MscaleHL_s1o9_Ds16_ST4_SHF384_LR1e3_E4000 ",
+        "nonlin": "bspline_mscale_HL",
+        "down_scale": 16,
+        "scale": (1 / 9),
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 384,
+        "tvl": False,
+        "added_noise": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
     "MscaleHL_s1o9_Ds16_ST4_3_SHF384_LR1e3_E2000": {
         "name": "MscaleHL_s1o9_Ds16_ST4_3_SHF384_LR1e3_E2000 ",
         "nonlin": "bspline_mscale_HL",
@@ -615,7 +743,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "MscaleHL_s1o9_Ds16_ST8_3_SHF384_LR1e3_E2000": {
         "name": "MscaleHL_s1o9_Ds16_ST8_3_SHF384_LR1e3_E2000 ",
         "nonlin": "bspline_mscale_HL",
@@ -633,7 +760,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ########### Increased noise ###########
     "MscaleHL_s1o9_ST4_3_SHF384_LR8e3_E4000_snr1_tau1e1": {
         "name": "MscaleHL_s1o9_ST4_3_SHF384_LR8e3_E4000_snr1_tau1e1",
@@ -695,7 +821,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ########### CT with Added Noise ###########
     "MscaleHL_s1o9_ST1o4_SHF450_LR8e3_E4000_T3e1_SNR2": {
         "name": "MscaleHL_s1o9_ST1o4_SHF450_LR8e3_E4000_T3e1_SNR2",
@@ -713,7 +838,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ######## Mscale-2 ########
     ########### BEST RESULT ###########
     "Mscale2_ST4_LR8e3_E4000": {
@@ -734,6 +858,41 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "Mscale2_ST1o15_LR8e3_E2000": {
+        "name": "Mscale2_ST1o15_LR8e3_E2000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), (1/15)],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "Mscale2_ST4_LR8e3_E2000": {
+        "name": "Mscale2_ST4_LR8e3_E2000",
+        "nonlin": "bspline_mscale_2",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
     ############# Image representation & generalization #############
     "Mscale2_ST4_LR8e3_E4000_T3e7": {
         "name": "Mscale2_ST4_LR8e3_E4000_T3e7",
@@ -752,6 +911,23 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
+    "Mscale2_ST4_LR8e3_E2000_T3e7": {
+            "name": "Mscale2_ST4_LR8e3_E2000_T3e7",
+            "nonlin": "bspline_mscale_2",
+            "down_scale": 4,
+            "scale": 0.0,
+            "scale_tensor": [(1 / 9), 4],
+            "hidden_features": 256,
+            "scaled_hidden_features": 0,
+            "tvl": False,
+            "lambda_tv": 0.0,
+            "added_noise": False,
+            "noise_snr": 2,
+            "tau": 3e7,
+            "learning_rate": 8e-3,
+            "niters": 2000,
+            "maxpoints": 256 * 256,
+        },
 
     "Mscale2_ST4_LR8e3_HF128_E4000": {
         "name": "Mscale2_ST4_LR8e3_HF128_E4000",
@@ -770,7 +946,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Mscale2_ST4_LR8e3_HF150_E4000": {
         "name": "Mscale2_ST4_LR8e3_HF150_E4000",
         "nonlin": "bspline_mscale_2",
@@ -788,13 +963,12 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Mscale2_ST3_3_LR8e3_HF150_E4000": {
         "name": "Mscale2_ST3_3_LR8e3_HF150_E4000",
         "nonlin": "bspline_mscale_2",
         "down_scale": 4,
         "scale": 0.0,
-        "scale_tensor": [(1/15), (1 / 9), 3],
+        "scale_tensor": [(1 / 15), (1 / 9), 3],
         "hidden_features": 150,
         "scaled_hidden_features": 0,
         "tvl": False,
@@ -806,13 +980,12 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Mscale2_ST3_3_LR8e3_HF90_E4000": {
         "name": "Mscale2_ST3_3_LR8e3_HF90_E4000",
         "nonlin": "bspline_mscale_2",
         "down_scale": 4,
         "scale": 0.0,
-        "scale_tensor": [(1/15), (1 / 9), 3],
+        "scale_tensor": [(1 / 15), (1 / 9), 3],
         "hidden_features": 90,
         "scaled_hidden_features": 0,
         "tvl": False,
@@ -824,7 +997,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Mscale2_ST2_LR8e3_E4000": {
         "name": "Mscale2_ST2_3_LR8e3_E4000",
         "nonlin": "bspline_mscale_2",
@@ -874,6 +1046,22 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "Mscale2_ST4_3_LR8e3_E2000_T3e7": {
+        "name": "Mscale2_ST16_3_LR8e3_E4000",
+        "nonlin": "bspline_mscale_2",
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), (1/12), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
     ############# SISR with Added Noise #############
     "Mscale2_Noise_ST4_LR8e3_E4000": {
         "name": "Mscale2_Noise_ST4_LR8e3_E4000",
@@ -892,7 +1080,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############# Different downsampling #############
     "Mscale2_ST4_Ds6_LR8e3_E4000": {
         "name": "Mscale2_ST4_Ds6_LR8e3_E4000",
@@ -962,13 +1149,12 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Mscale2_ST4_3_Ds16_LR8e3_E4000": {
         "name": "Mscale2_ST4_3_Ds16_LR8e3_E4000",
         "nonlin": "bspline_mscale_2",
         "down_scale": 16,
         "scale": 0.0,
-        "scale_tensor": [(1/12), (1 / 9), 4],
+        "scale_tensor": [(1 / 12), (1 / 9), 4],
         "hidden_features": 256,
         "scaled_hidden_features": 0,
         "tvl": False,
@@ -980,7 +1166,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Mscale2_ST8_3_Ds16_LR8e3_E4000": {
         "name": "Mscale2_ST8_3_Ds16_LR8e3_E4000",
         "nonlin": "bspline_mscale_2",
@@ -998,7 +1183,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############# CT with Increased noise #############
     "Mscale2_ST4_LR8e3_E4000_T3e1_SNR2": {
         "name": "Mscale2_ST4_LR8e3_E4000_T3e1_SNR2",
@@ -1017,7 +1201,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############# Increased noise #############
     "Mscale2_ST4_3_LR8e3_E4000_snr1_tau0.2e1": {
         "name": "Mscale2_ST4_3_LR8e3_E4000_snr1_tau0.2e1",
@@ -1034,7 +1217,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############# Hierarchical Mscale #############
     ############### Image Denoise ###############
     ############### BEST RESULT ###############
@@ -1056,6 +1238,25 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "MscaleHier_ST4_LR8e3_E2000": {
+        "name": "MscaleHier_ST4_LR8e3_E2000",
+        "nonlin": "bspline_mscale_hier",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    ############# Increased noise #############
     "MscaleHier_ST4_LR8e3_E4000_T2_SNR1": {
         "name": "MscaleHier_ST4_LR8e3_E4000_T2_SNR1",
         "nonlin": "bspline_mscale_hier",
@@ -1074,6 +1275,23 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "MscaleHier_ST1o9_LR8e3_E4000_T2_SNR1": {
+        "name": "MscaleHier_ST1o9_LR8e3_E4000_T2_SNR1",
+        "nonlin": "bspline_mscale_hier",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [4, (1/9)],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 1,
+        "tau": 0.2e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
     ################ Image representation & generalization ################
     "MscaleHier_ST4_LR8e3_E4000_T3e7": {
         "name": "MscaleHier_ST4_LR8e3_E4000_T3e7",
@@ -1090,6 +1308,23 @@ CONFIGS = {
         "tau": 3e7,
         "learning_rate": 8e-3,
         "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+    "MscaleHier_ST4_LR8e3_E2000_T3e7": {
+        "name": "MscaleHier_ST4_LR8e3_E2000_T3e7",
+        "nonlin": "bspline_mscale_hier",
+        "down_scale": 4,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), 4],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
+        "niters": 2000,
         "maxpoints": 256 * 256,
     },
     ############# BEST RESULT FOR VARIABLE LR ############# (Image Denoise)
@@ -1144,7 +1379,7 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-     "MscaleHier_ST4_LR8e3_2_E4000": {
+    "MscaleHier_ST4_LR8e3_2_E4000": {
         "name": "MscaleHier_ST4_LR8e3_2_E4000",
         "nonlin": "bspline_mscale_hier",
         "down_scale": 4,
@@ -1244,13 +1479,31 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "MscaleHier_ST1o2_LR8e3_E4000": {
         "name": "MscaleHier_ST1o2_LR8e3_E4000",
         "nonlin": "bspline_mscale_hier",
         "down_scale": 4,
         "scale": 0.0,
-        "scale_tensor": [(1 / 8), (1/2)],
+        "scale_tensor": [(1 / 8), (1 / 2)],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
+    ############# Different downsampling #############
+    "MscaleHier_ST4_DS16_LR8e3_E4000": {
+        "name": "MscaleHier_ST4_DS16_LR8e3_E4000",
+        "nonlin": "bspline_mscale_hier",
+        "down_scale": 16,
+        "scale": 0.0,
+        "scale_tensor": [(1 / 9), 4],
         "hidden_features": 256,
         "scaled_hidden_features": 0,
         "tvl": False,
@@ -1279,7 +1532,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ############# Image representation & generalization #############
     "Bspline_s9_5_LR8e3_E2000_T3e7": {
         "name": "Bspline_s9_5_LR8e3_E2000_T3e7",
@@ -1296,7 +1548,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "Bspline_s5_5_LR8e3_E2000_T3e7": {
         "name": "Bspline_s5_5_LR8e3_E2000_T3e7",
         "nonlin": "bspline_form",
@@ -1312,7 +1563,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "Bspline_s12_LR8e3_E2000_T3e7": {
         "name": "Bspline_s12_LR8e3_E2000_T3e7",
         "nonlin": "bspline_form",
@@ -1328,7 +1578,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     # SISR
     ########### BEST RESULT ###########
     "Bspline_s9_LR1e3_E2000": {
@@ -1346,6 +1595,24 @@ CONFIGS = {
         "tau": 3e1,
         "learning_rate": 1e-3,
         "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    "Bspline_s9_LR1e3_E4000": {
+        "name": "Bspline_s9_LR1e3_E4000",
+        "nonlin": "bspline_form",
+        "down_scale": 4,
+        "scale": 1 / 9.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 4000,
         "maxpoints": 256 * 256,
     },
     "Bspline_s9_LR1e3_E1500": {
@@ -1382,7 +1649,24 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
+    ############ Different downsampling ############
+    "Bspline_s9__DS16_LR1e3_E4000": {
+        "name": "Bspline_s9__DS16_LR1e3_E4000",
+        "nonlin": "bspline_form",
+        "down_scale": 16,
+        "scale": 1 / 9.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 1e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
     ########### CT ###########
     "Bspline_s4_LR8e3_E4000": {
         "name": "Bspline_s4_LR8e3_E4000",
@@ -1399,7 +1683,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ########### CT with Added Noise ###########
     "Bspline_s4_LR8e3_E4000_T3e1_SNR2": {
         "name": "Bspline_s4_LR8e3_E4000_T3e1_SNR2",
@@ -1417,7 +1700,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ########### SISR with Added Noise ###########
     "Bspline_Noise_s9_LR1e3_E2000": {
         "name": "Bspline_Noise_s9_LR1e3_E2000",
@@ -1436,7 +1718,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ########### Different downsampling ###########
     "Bspline_s9_Ds6_LR1e3_E2000": {
         "name": "Bspline_s9_Ds6_LR1e3_E2000",
@@ -1486,7 +1767,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ########## Increased noise ##########
     "Bspline_s9_5_LR8e3_E4000_snr1_tau1e1": {
         "name": "Bspline_s9_5_LR8e3_E4000_snr1_tau1e1",
@@ -1533,7 +1813,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     ########### WIRE ###########
     # Image denoise
     "WIRE_s8_o7_LR5e3_E2000": {
@@ -1568,7 +1847,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ############## Image Representation & Generalization ##############
     "WIRE_s8_o7_LR1e2_E2000_T3e7": {
         "name": "WIRE_s8_o7_LR1e2_E2000_T3e7",
@@ -1586,7 +1864,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     # SISR
     "WIRE_s9_o8_LR5e3_E2000": {
         "name": "WIRE_s9_o8_LR5e3_E2000",
@@ -1607,6 +1884,24 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "WIRE_s9_o8_LR5e3_E4000": {
+        "name": "WIRE_s9_o8_LR5e3_E4000",
+        "nonlin": "wire",
+        "down_scale": 4,
+        "scale": 9.0,
+        "omega0": 8.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 5e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
     # CT
     "WIRE_s12_o8_LR5e3_E2000": {
         "name": "WIRE_s12_o8_LR5e3_E2000",
@@ -1624,7 +1919,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "WIRE_s12_o8_LR5e3_HF450_E2000": {
         "name": "WIRE_s12_o8_LR5e3_HF450_E2000",
         "nonlin": "wire",
@@ -1642,7 +1936,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ########### CT with Added Noise ###########
     "WIRE_s12_o8_LR5e3_E2000_T3e1_SNR2": {
         "name": "WIRE_s12_o8_LR5e3_E2000_T3e1_SNR2",
@@ -1661,7 +1954,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ########## Increased noise ##########
     "WIRE_s8_o7_LR5e3_E4000_snr1_tau1e1": {
         "name": "WIRE_s8_o7_LR5e3_E4000_snr1_tau1e1",
@@ -1711,7 +2003,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ############# SISR with Added Noise #############
     "WIRE_Noise_s9_o8_LR5e3_E2000": {
         "name": "WIRE_Noise_s9_o8_LR5e3_E2000",
@@ -1731,7 +2022,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ############# Different downsampling #############
     "WIRE_s9_Ds6_o8_LR5e3_E2000": {
         "name": "WIRE_s9_Ds6_o8_LR5e3_E2000",
@@ -1788,6 +2078,24 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "WIRE_s9_Ds16_o8_LR5e3_E4000": {
+        "name": "WIRE_s9_Ds16_o8_LR5e3_E4000",
+        "nonlin": "wire",
+        "down_scale": 16,
+        "scale": 9.0,
+        "omega0": 8.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e1,
+        "learning_rate": 5e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
     ##################### SIREN #####################
     ##################### Image Denoise #####################
     "SIREN_s30_o7_LR8e3_E2000": {
@@ -1807,6 +2115,23 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "SIREN_s30_o7_LR8e3_E4000_T2_SNR1": {
+        "name": "SIREN_s30_o7_LR8e3_E4000_T2_SNR1",
+        "nonlin": "siren",
+        "scale": 30.0,
+        "omega0": 7.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 1,
+        "tau": 0.2e1,
+        "learning_rate": 8e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
     "SIREN_s30_o7_LR8e3_E2000_T1e1_SNR1": {
         "name": "SIREN_s30_o7_LR8e3_E2000_T1e1_SNR1",
         "nonlin": "siren",
@@ -1823,7 +2148,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "SIREN_s30_o30_LR1e3_E4000_T1e1_SNR1": {
         "name": "SIREN_s30_o30_LR1e3_E4000_T1e1_SNR1",
         "nonlin": "siren",
@@ -1840,7 +2164,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "SIREN_s30_o30_LR1e3_E2000_T1e1_SNR1": {
         "name": "SIREN_s30_o30_LR1e3_E2000_T1e1_SNR1",
         "nonlin": "siren",
@@ -1857,7 +2180,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "SIREN_s30_o7_LR1e3_E2000_T2_SNR1": {
         "name": "SIREN_s30_o7_LR1e3_E2000_T2_SNR1",
         "nonlin": "siren",
@@ -1874,7 +2196,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "SIREN_s30_o7_LR1e3_E4000_T2_SNR1": {
         "name": "SIREN_s30_o7_LR1e3_E4000_T2_SNR1",
         "nonlin": "siren",
@@ -1891,7 +2212,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "SIREN_s30_o30_LR2e3_E2000_T2_SNR1": {
         "name": "SIREN_s30_o30_LR2e3_E2000_T2_SNR1",
         "nonlin": "siren",
@@ -1905,6 +2225,24 @@ CONFIGS = {
         "noise_snr": 1,
         "tau": 2,
         "learning_rate": 2e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
+
+    ################# Image Representation & Generalization #################
+    "SIREN_s30_o7_LR8e3_E2000_T3e7_SNR2": {
+        "name": "SIREN_s30_o7_LR8e3_E2000_T3e7_SNR2",
+        "nonlin": "siren",
+        "scale": 30.0,
+        "omega0": 7.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-3,
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
@@ -1928,10 +2266,9 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     ##################### CT #####################
-    "SIREN_s30_o12_LR1e3_E2000": {
-        "name": "SIREN_s30_o12_LR1e3_E2000",
+    "SIREN_s30_o12_LR1e3_E4000": {
+        "name": "SIREN_s30_o12_LR1e3_E4000",
         "nonlin": "siren",
         "scale": 30.0,
         "omega0": 12.0,
@@ -1944,10 +2281,29 @@ CONFIGS = {
         "noise_snr": 0,
         "tau": 0,
         "learning_rate": 1e-3,
-        "niters": 2000,
+        "niters": 4000,
         "maxpoints": 256 * 256,
     },
 
+    ################### Different downsampling ###################
+    "SIREN_s30_o8_DS16_LR1e3_E4000": {
+        "name": "SIREN_s30_o8_DS16_LR1e3_E4000",
+        "nonlin": "siren",
+        "down_scale": 16,
+        "scale": 30.0,
+        "omega0": 8.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 0,
+        "tau": 0,
+        "learning_rate": 1e-3,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
     ##################### Posenc #####################
     ##################### Image Denoise #####################
     "Posenc_s8_o7_LR8e3_E2000": {
@@ -1967,6 +2323,39 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
+    "Posenc_s8_o7_LR8e3_E2_T2_SNR1": {
+        "name": "Posenc_s8_o7_LR8e3_E2_T2_SNR1",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 1,
+        "tau": 0.2e1,
+        "learning_rate": 8e-3,
+        "niters": 2,
+        "maxpoints": 256 * 256,
+    },
+
+    "Posenc_s8_o7_LR8e3_E2000_T2_SNR1": {
+        "name": "Posenc_s8_o7_LR8e3_E2000_T2_SNR1",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 1,
+        "tau": 0.2e1,
+        "learning_rate": 8e-3,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
     "Posenc_s8_o7_LR4e3_E4000": {
         "name": "Posenc_s8_o7_LR4e3_E4000",
         "nonlin": "posenc",
@@ -1983,7 +2372,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_LR1e2_E4000": {
         "name": "Posenc_s8_o7_LR1e2_E4000",
         "nonlin": "posenc",
@@ -2000,7 +2388,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_LR8e4_E2000": {
         "name": "Posenc_s8_o7_LR8e4_E2000",
         "nonlin": "posenc",
@@ -2017,7 +2404,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_HF300_LR8e4_E2000": {
         "name": "Posenc_s8_o7_HF300_LR8e4_E2000",
         "nonlin": "posenc",
@@ -2034,7 +2420,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_HF300_LR8e4_E4000": {
         "name": "Posenc_s8_o7_HF300_LR8e4_E4000",
         "nonlin": "posenc",
@@ -2051,7 +2436,6 @@ CONFIGS = {
         "niters": 4000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_LR1e2_E2000": {
         "name": "Posenc_s8_o7_LR1e2_E2000",
         "nonlin": "posenc",
@@ -2068,7 +2452,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_LR2e3_E2000": {
         "name": "Posenc_s8_o7_LR2e3_E2000",
         "nonlin": "posenc",
@@ -2085,7 +2468,6 @@ CONFIGS = {
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
-
     "Posenc_s8_o7_LR8e3_E2000_T1e1_SNR1": {
         "name": "Posenc_s8_o7_LR8e3_E2000_T1e1_SNR1",
         "nonlin": "posenc",
@@ -2103,8 +2485,9 @@ CONFIGS = {
         "maxpoints": 256 * 256,
     },
 
-    "Posenc_s8_o7_LR8e3_E2000_T2_SNR1": {
-        "name": "Posenc_s8_o7_LR8e3_E2000_T2_SNR1",
+    ##################### Image Denoise: Different Noise Levels #####################
+    "Posenc_s8_o7_LR8e4_E4000_T2_SNR1": {
+        "name": "Posenc_s8_o7_LR8e4_E4000_T2_SNR1",
         "nonlin": "posenc",
         "scale": 8.0,
         "omega0": 7.0,
@@ -2114,13 +2497,108 @@ CONFIGS = {
         "tvl": False,
         "lambda_tv": 0.0,
         "noise_snr": 1,
-        "tau": 2,
-        "learning_rate": 8e-3,
+        "tau": 2.0,
+        "learning_rate": 8e-4,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+    
+
+    ##################### Image Representation & Generalization #####################
+    "Posenc_s8_o7_LR8e4_E2000_T3e7_SNR2": {
+        "name": "Posenc_s8_o7_LR8e4_E2000_T3e7_SNR2",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-4,
         "niters": 2000,
         "maxpoints": 256 * 256,
     },
 
+    ##################### SISR #####################
+    "Posenc_s8_o7_DS4_LR8e4_E2000": {
+        "name": "Posenc_s8_o7_DS4_LR8e4_E2000",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "down_scale": 4,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-4,
+        "niters": 2000,
+        "maxpoints": 256 * 256,
+    },
 
+    "Posenc_s8_o7_DS4_LR8e4_E4000": {
+        "name": "Posenc_s8_o7_DS4_LR8e4_E4000",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "down_scale": 4,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-4,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+    ################## CT ##################
+    "Posenc_s8_o7_LR8e4_E4000": {
+        "name": "Posenc_s8_o7_LR8e4_E4000",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "down_scale": 4,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-4,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
+
+    ##################### Different downsampling #####################
+    "Posenc_s8_o7_DS16_LR8e4_E4000": {
+        "name": "Posenc_s8_o7_DS4_LR8e4_E2000",
+        "nonlin": "posenc",
+        "scale": 8.0,
+        "omega0": 7.0,
+        "down_scale": 16,
+        "scale_tensor": [0.0],
+        "hidden_features": 256,
+        "scaled_hidden_features": 0,
+        "tvl": False,
+        "lambda_tv": 0.0,
+        "added_noise": False,
+        "noise_snr": 2,
+        "tau": 3e7,
+        "learning_rate": 8e-4,
+        "niters": 4000,
+        "maxpoints": 256 * 256,
+    },
 
 
 }
